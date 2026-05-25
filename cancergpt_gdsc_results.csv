@@ -1,0 +1,42 @@
+Drug,Pathway,Target,N_samples,N_sensitive,N_resistant,ROC_AUC,Avg_Precision
+Nutlin-3a (-),p53 pathway,MDM2,369,151,218,0.951,0.925
+Olaparib,Genome integrity,"PARP1, PARP2",358,180,178,0.909,0.917
+Selumetinib,ERK MAPK signaling,"MEK1, MEK2",650,267,383,0.9,0.846
+Oxaliplatin,DNA replication,DNA alkylating agent,725,358,367,0.885,0.891
+Trametinib,ERK MAPK signaling,"MEK1, MEK2",382,149,233,0.875,0.828
+Cisplatin,DNA replication,DNA crosslinker,319,167,152,0.855,0.87
+Afatinib,EGFR signaling,"EGFR, ERBB2",318,149,169,0.849,0.837
+ABT737,Apoptosis regulation,"BCL2, BCL-XL,  BCL-W, BCL-B, BFL1",393,164,229,0.845,0.843
+AGI-6780,Metabolism,IDH2 R140Q mutant,389,198,191,0.842,0.819
+Navitoclax,Apoptosis regulation,"BCL2, BCL-XL, BCL-W",368,168,200,0.841,0.838
+AMG-319,PI3K/MTOR signaling,PI3K (beta sparing),366,170,196,0.841,0.843
+Docetaxel,Mitosis,Microtubule stabiliser,686,432,254,0.837,0.884
+Palbociclib,Cell cycle,"CDK4, CDK6",389,190,199,0.836,0.841
+Irinotecan,DNA replication,TOP1,391,208,183,0.832,0.851
+50869,Unclassified,,324,177,147,0.831,0.837
+A-366,Chromatin histone methylation,"EHMT1, EHMT2",298,163,135,0.82,0.862
+630600,Unclassified,,330,170,160,0.808,0.846
+776928,Unclassified,,308,204,104,0.807,0.881
+743380,Unclassified,,271,111,160,0.807,0.742
+720427,Unclassified,,305,155,150,0.805,0.807
+5-Fluorouracil,Other,Antimetabolite (DNA & RNA),378,190,188,0.805,0.825
+765771,Unclassified,,279,132,147,0.804,0.764
+Camptothecin,DNA replication,TOP1,403,226,177,0.799,0.844
+5-azacytidine,Other,DNA methyltransferases,311,167,144,0.796,0.821
+Erlotinib,EGFR signaling,EGFR,363,172,191,0.791,0.76
+123138,Unclassified,,301,153,148,0.789,0.786
+667880,Unclassified,,303,162,141,0.788,0.829
+MK-2206,PI3K/MTOR signaling,"AKT1, AKT2",364,179,185,0.776,0.809
+729189,Unclassified,,293,154,139,0.773,0.826
+Paclitaxel,Mitosis,Microtubule stabiliser,429,240,189,0.769,0.811
+615590,Unclassified,,290,158,132,0.762,0.809
+150412,Unclassified,,265,123,142,0.757,0.73
+Tamoxifen,Hormone-related,ESR1,396,215,181,0.751,0.795
+741909,Unclassified,,264,105,159,0.748,0.677
+Gemcitabine,DNA replication,Pyrimidine antimetabolite,437,241,196,0.744,0.807
+AGI-5198,Metabolism,IDH1 (R132H),386,198,188,0.736,0.791
+Alpelisib,PI3K/MTOR signaling,PI3Kalpha,399,195,204,0.733,0.721
+AGK2,Chromatin histone acetylation,"BAZ2A, BAZ2B",369,196,173,0.733,0.778
+Lapatinib,EGFR signaling,"EGFR, ERBB2",401,199,202,0.723,0.704
+Fulvestrant,Hormone-related,ESR,676,369,307,0.64,0.699
+123829,Unclassified,,338,169,169,0.515,0.523

@@ -1,0 +1,42 @@
+Drug,Pathway,Target,N_samples,N_sensitive,N_resistant,ROC_AUC,Avg_Precision,Prev_AUC,Delta_AUC,Mut_features_in_top10
+Nutlin-3a (-),p53 pathway,MDM2,369,151,218,0.961,0.932,0.951,0.01,0
+Olaparib,Genome integrity,"PARP1, PARP2",358,180,178,0.909,0.917,0.909,-0.0,0
+Selumetinib,ERK MAPK signaling,"MEK1, MEK2",650,267,383,0.899,0.847,0.9,-0.001,0
+Oxaliplatin,DNA replication,DNA alkylating agent,725,358,367,0.885,0.891,0.885,0.0,0
+Trametinib,ERK MAPK signaling,"MEK1, MEK2",382,149,233,0.875,0.828,0.875,0.0,0
+Cisplatin,DNA replication,DNA crosslinker,319,167,152,0.855,0.87,0.855,-0.0,0
+Afatinib,EGFR signaling,"EGFR, ERBB2",318,149,169,0.849,0.837,0.849,-0.0,0
+ABT737,Apoptosis regulation,"BCL2, BCL-XL,  BCL-W, BCL-B, BFL1",393,164,229,0.845,0.843,0.845,0.0,0
+AGI-6780,Metabolism,IDH2 R140Q mutant,389,198,191,0.842,0.819,0.842,-0.0,0
+Navitoclax,Apoptosis regulation,"BCL2, BCL-XL, BCL-W",368,168,200,0.841,0.838,0.841,0.0,0
+AMG-319,PI3K/MTOR signaling,PI3K (beta sparing),366,170,196,0.841,0.843,0.841,0.0,0
+Docetaxel,Mitosis,Microtubule stabiliser,686,432,254,0.837,0.884,0.837,0.0,0
+Palbociclib,Cell cycle,"CDK4, CDK6",389,190,199,0.836,0.841,0.836,-0.0,0
+Irinotecan,DNA replication,TOP1,391,208,183,0.832,0.851,0.832,-0.0,0
+50869,Unclassified,,324,177,147,0.831,0.837,0.831,-0.0,0
+A-366,Chromatin histone methylation,"EHMT1, EHMT2",298,163,135,0.82,0.862,0.82,0.0,0
+630600,Unclassified,,330,170,160,0.808,0.846,0.808,-0.0,0
+776928,Unclassified,,308,204,104,0.807,0.881,0.807,0.0,0
+743380,Unclassified,,271,111,160,0.807,0.742,0.807,-0.0,0
+720427,Unclassified,,305,155,150,0.805,0.807,0.805,-0.0,0
+5-Fluorouracil,Other,Antimetabolite (DNA & RNA),378,190,188,0.805,0.825,0.805,0.0,0
+765771,Unclassified,,279,132,147,0.804,0.764,0.804,-0.0,0
+Camptothecin,DNA replication,TOP1,403,226,177,0.799,0.844,0.799,0.0,0
+5-azacytidine,Other,DNA methyltransferases,311,167,144,0.796,0.821,0.796,-0.0,0
+Erlotinib,EGFR signaling,EGFR,363,172,191,0.791,0.76,0.791,-0.0,0
+123138,Unclassified,,301,153,148,0.789,0.786,0.789,-0.0,0
+667880,Unclassified,,303,162,141,0.788,0.829,0.788,-0.0,0
+MK-2206,PI3K/MTOR signaling,"AKT1, AKT2",364,179,185,0.776,0.809,0.776,0.0,0
+729189,Unclassified,,293,154,139,0.773,0.826,0.773,0.0,0
+Paclitaxel,Mitosis,Microtubule stabiliser,429,240,189,0.769,0.811,0.769,0.0,0
+615590,Unclassified,,290,158,132,0.762,0.809,0.762,-0.0,0
+150412,Unclassified,,265,123,142,0.757,0.73,0.757,-0.0,0
+Tamoxifen,Hormone-related,ESR1,396,215,181,0.751,0.795,0.751,-0.0,0
+741909,Unclassified,,264,105,159,0.748,0.677,0.748,-0.0,0
+Gemcitabine,DNA replication,Pyrimidine antimetabolite,437,241,196,0.744,0.807,0.744,-0.0,0
+AGI-5198,Metabolism,IDH1 (R132H),386,198,188,0.736,0.791,0.736,-0.0,0
+Alpelisib,PI3K/MTOR signaling,PI3Kalpha,399,195,204,0.733,0.721,0.733,-0.0,0
+AGK2,Chromatin histone acetylation,"BAZ2A, BAZ2B",369,196,173,0.733,0.778,0.733,0.0,0
+Lapatinib,EGFR signaling,"EGFR, ERBB2",401,199,202,0.723,0.704,0.723,0.0,0
+Fulvestrant,Hormone-related,ESR,676,369,307,0.64,0.699,0.64,0.0,0
+123829,Unclassified,,338,169,169,0.504,0.517,0.515,-0.011,0

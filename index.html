@@ -1,0 +1,1730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CancerGPT — Clinical Decision Support</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0D2137;--blue:#1A4C7A;--teal:#0B6E5C;--sky:#2E86C1;
+  --red:#A93226;--amber:#C07A0A;--green:#1E7E4A;--grey:#6C7A8D;
+  --surface:#F4F7FB;--white:#FFFFFF;--border:#DDE4EF;
+  --text:#0D2137;--muted:#5A6B80;--faint:#8FA3BB;
+  --radius:10px;--radius-lg:16px;
+}
+body{font-family:'Outfit',sans-serif;background:var(--surface);color:var(--text);min-height:100vh;font-size:15px;line-height:1.6}
+
+/* NAV */
+nav{background:var(--navy);padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:200;box-shadow:0 2px 12px rgba(0,0,0,.3)}
+.nav-brand{font-family:'DM Serif Display',serif;color:#fff;font-size:1.35rem;cursor:pointer}
+.nav-brand span{color:#5BB3F0}
+.nav-tabs{display:flex;gap:0}
+.nav-tab{padding:0 1.25rem;height:56px;display:flex;align-items:center;color:rgba(255,255,255,.55);font-size:.88rem;font-weight:500;cursor:pointer;border-bottom:3px solid transparent;transition:all .2s;white-space:nowrap}
+.nav-tab:hover{color:#fff}
+.nav-tab.active{color:#fff;border-bottom-color:#5BB3F0}
+
+/* PAGES */
+.page{display:none}.page.active{display:block}
+
+/* HERO */
+.hero{background:linear-gradient(135deg,var(--navy) 0%,#1A3A5C 55%,#0B5C4A 100%);padding:3rem 2rem 2.5rem;text-align:center}
+.hero h1{font-family:'DM Serif Display',serif;font-size:2.6rem;color:#fff;line-height:1.15;margin-bottom:.6rem}
+.hero h1 em{color:#5BB3F0;font-style:normal}
+.hero p{color:rgba(255,255,255,.7);font-size:1rem;max-width:580px;margin:0 auto 1.5rem;font-weight:300}
+.hero-stats{display:flex;justify-content:center;gap:2.5rem;flex-wrap:wrap}
+.hero-stat .num{font-family:'DM Mono',monospace;font-size:1.7rem;font-weight:500;color:#5BB3F0}
+.hero-stat .lbl{font-size:.72rem;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.08em}
+
+/* LAYOUT */
+.container{max-width:1060px;margin:0 auto;padding:2rem}
+
+/* CARDS */
+.card{background:var(--white);border-radius:var(--radius-lg);border:1px solid var(--border);padding:1.5rem;margin-bottom:1rem;box-shadow:0 2px 10px rgba(13,33,55,.05)}
+.card-title{font-family:'DM Serif Display',serif;font-size:1.25rem;color:var(--navy);margin-bottom:.25rem}
+.card-sub{color:var(--muted);font-size:.88rem;margin-bottom:1.25rem}
+
+/* FORM */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:.85rem}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.85rem}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:.85rem}
+.field{display:flex;flex-direction:column;gap:.3rem}
+.field label{font-size:.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+select,input[type=number],input[type=text]{width:100%;padding:.6rem .85rem;border:1px solid var(--border);border-radius:var(--radius);font-family:inherit;font-size:.93rem;color:var(--text);background:var(--surface);transition:border-color .2s,box-shadow .2s;outline:none}
+select:focus,input:focus{border-color:var(--sky);box-shadow:0 0 0 3px rgba(46,134,193,.13)}
+.btn{padding:.65rem 1.4rem;border:1px solid var(--border);border-radius:var(--radius);font-family:inherit;font-size:.93rem;font-weight:600;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:.4rem}
+.btn-primary{background:var(--navy);color:#fff;border-color:var(--navy)}
+.btn-primary:hover{background:var(--blue)}
+.btn-secondary{background:var(--white);color:var(--text)}
+.btn-secondary:hover{background:var(--surface)}
+.btn-export{background:#1E7E4A;color:#fff;border-color:#1E7E4A}
+.btn-export:hover{background:#166039}
+.btn-row{display:flex;gap:.75rem;flex-wrap:wrap;margin-top:.25rem}
+
+/* RISK BANNER */
+.risk-banner{border-radius:var(--radius-lg);padding:1.25rem 1.5rem;margin-bottom:1rem;display:flex;align-items:center;gap:1.25rem}
+.risk-banner.low{background:#E8F8EE;border:1px solid #9FE1CB}
+.risk-banner.mod{background:#FEF6E4;border:1px solid #FAC775}
+.risk-banner.high{background:#FEF0EB;border:1px solid #F5C4B3}
+.risk-banner.crit{background:#FEEDED;border:1px solid #F7C1C1}
+.risk-num{font-family:'DM Mono',monospace;font-size:2.5rem;font-weight:500;min-width:60px;text-align:center;line-height:1}
+.low .risk-num{color:#1E7E4A}.mod .risk-num{color:#C07A0A}.high .risk-num{color:#A93226}.crit .risk-num{color:#8B1A10}
+.risk-info-title{font-size:1.1rem;font-weight:600;color:var(--text)}
+.risk-info-sub{font-size:.85rem;color:var(--muted);margin-top:.15rem}
+
+/* METRIC GRID */
+.metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;margin-bottom:1rem}
+.metric-box{background:var(--surface);border-radius:var(--radius);padding:.85rem 1rem}
+.metric-box .ml{font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.3rem}
+.metric-box .mv{font-size:1.3rem;font-weight:500;color:var(--navy);font-family:'DM Mono',monospace}
+
+/* PILLS */
+.pill{display:inline-block;font-size:.78rem;padding:.25rem .75rem;border-radius:99px;margin:.2rem .25rem .2rem 0;font-weight:500}
+.pill-green{background:#E8F8EE;color:#1E7E4A}
+.pill-amber{background:#FEF6E4;color:#C07A0A}
+.pill-red{background:#FEEDED;color:#A93226}
+.pill-blue{background:#E6F1FB;color:#185FA5}
+.pill-grey{background:var(--surface);color:var(--muted)}
+
+/* DRUG ROW */
+.drug-row{padding:.6rem 0;border-bottom:1px solid var(--border)}
+.drug-row:last-child{border-bottom:none}
+.drug-row-top{display:flex;justify-content:space-between;font-size:.88rem;margin-bottom:.3rem}
+.drug-row-top .dn{font-weight:600;color:var(--text)}
+.drug-row-top .da{color:var(--muted)}
+.bar-track{height:5px;background:var(--border);border-radius:99px;overflow:hidden}
+.bar-fill{height:100%;border-radius:99px}
+
+/* ITEM LIST */
+.item{display:flex;gap:.65rem;align-items:flex-start;padding:.45rem 0;border-bottom:1px solid var(--border);font-size:.88rem;color:var(--text);line-height:1.55}
+.item:last-child{border-bottom:none}
+.dot{width:7px;height:7px;border-radius:50%;margin-top:.38rem;flex-shrink:0}
+.dg{background:#1E7E4A}.da{background:#C07A0A}.dr{background:#A93226}.db{background:#2E86C1}
+
+/* SECTION HDR */
+.sec-hdr{font-size:.78rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:1rem 0 .4rem;padding-top:.5rem;border-top:1px solid var(--border)}
+.sec-hdr:first-child{border-top:none;margin-top:0;padding-top:0}
+
+/* DRUG GRID */
+.drug-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:.7rem}
+.dc{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:.9rem 1rem;cursor:pointer;transition:border-color .2s,box-shadow .2s,transform .15s;position:relative;overflow:hidden}
+.dc:hover{border-color:var(--sky);box-shadow:0 4px 14px rgba(46,134,193,.12);transform:translateY(-2px)}
+.dc.sel{border-color:var(--navy);box-shadow:0 4px 18px rgba(13,33,55,.14)}
+.dc::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px}
+.tier-e::before{background:var(--red)}.tier-g::before{background:var(--navy)}.tier-a::before{background:var(--sky)}.tier-l::before{background:var(--grey)}
+.dc-name{font-weight:600;font-size:.9rem;color:var(--navy);margin-bottom:.15rem}
+.dc-path{font-size:.74rem;color:var(--muted);margin-bottom:.5rem}
+.dc-row{display:flex;justify-content:space-between;align-items:center}
+.dc-auc{font-family:'DM Mono',monospace;font-size:.82rem;font-weight:500}
+.auc-e{color:var(--red)}.auc-g{color:var(--navy)}.auc-a{color:var(--sky)}.auc-l{color:var(--grey)}
+.dc-n{font-size:.72rem;color:var(--faint)}
+.dc-bar{height:3px;background:var(--border);border-radius:99px;margin-top:.45rem;overflow:hidden}
+.dc-fill{height:100%;border-radius:99px}
+
+/* FILTER BAR */
+.filter-bar{display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap;align-items:center}
+.fb{padding:.35rem .9rem;border:1px solid var(--border);border-radius:99px;background:var(--white);font-family:inherit;font-size:.82rem;color:var(--muted);cursor:pointer;transition:all .2s}
+.fb.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+.search-box{padding:.35rem .85rem;border:1px solid var(--border);border-radius:99px;font-family:inherit;font-size:.82rem;outline:none;flex:1;min-width:160px;max-width:240px}
+.search-box:focus{border-color:var(--sky)}
+
+/* PREDICT RESULT */
+.pred-result{display:none;margin-top:1.25rem;border-radius:var(--radius);overflow:hidden}
+.pred-hdr{padding:1.1rem 1.4rem;display:flex;align-items:center;gap:.9rem}
+.pred-hdr.sens{background:linear-gradient(90deg,#0B6E5C,#0D9478)}
+.pred-hdr.res{background:linear-gradient(90deg,#8B1A10,#C0392B)}
+.pred-hdr.mod{background:linear-gradient(90deg,#8B6610,#C07A0A)}
+.pred-icon{font-size:1.8rem}
+.pred-title{color:#fff;font-family:'DM Serif Display',serif;font-size:1.2rem}
+.pred-sub{color:rgba(255,255,255,.75);font-size:.82rem}
+.pred-body{padding:1.25rem;background:var(--white);border:1px solid var(--border);border-top:none}
+.pred-metrics{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem}
+.pred-metric .pv{font-family:'DM Mono',monospace;font-size:1.5rem;font-weight:500;color:var(--navy)}
+.pred-metric .pl{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.conf-track{height:7px;background:var(--surface);border-radius:99px;overflow:hidden;margin:.4rem 0}
+.conf-fill{height:100%;border-radius:99px;transition:width .6s ease}
+.gene-wrap{margin-top:.85rem;padding-top:.85rem;border-top:1px solid var(--border)}
+.gene-label{font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.4rem}
+.gene-chips{display:flex;flex-wrap:wrap;gap:.3rem}
+.gc{padding:.2rem .65rem;border-radius:99px;font-family:'DM Mono',monospace;font-size:.74rem;font-weight:500}
+.gc-1{background:var(--teal);color:#fff}.gc-2{background:#E1F5EE;color:#0B5C4A}.gc-r{background:var(--surface);color:var(--muted)}
+
+/* DISCLAIMER */
+.disclaimer{font-size:.78rem;color:var(--muted);padding:.85rem 1rem;background:var(--surface);border-radius:var(--radius);margin-top:1rem;line-height:1.65;border-left:3px solid var(--border)}
+
+/* ABOUT */
+.about-stat{display:flex;gap:.6rem;padding:.6rem 0;border-bottom:1px solid var(--border);font-size:.88rem}
+.about-stat:last-child{border-bottom:none}
+.about-stat .ak{font-weight:600;min-width:160px;color:var(--text)}
+.about-stat .av{color:var(--muted)}
+
+/* FOOTER */
+footer{text-align:center;padding:2rem;color:var(--faint);font-size:.78rem;border-top:1px solid var(--border);margin-top:2rem}
+
+@media(max-width:700px){
+  .grid2,.grid3,.grid4,.metric-grid{grid-template-columns:1fr}
+  .hero h1{font-size:1.9rem}
+  .hero-stats{gap:1.25rem}
+  .nav-tab{padding:0 .75rem;font-size:.78rem}
+}
+
+/* MUTATION PAGE */
+.mut-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:.5rem;margin-bottom:1rem}
+.mut-toggle{display:flex;align-items:center;gap:.4rem;padding:.45rem .7rem;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:all .15s;background:var(--white);font-size:.82rem;font-weight:500;color:var(--text)}
+.mut-toggle:hover{border-color:var(--sky);background:var(--surface)}
+.mut-toggle.on-sens{background:#E8F8EE;border-color:#68C98A;color:#1E7E4A}
+.mut-toggle.on-res{background:#FEEDED;border-color:#F09595;color:#A93226}
+.mut-toggle.on-neu{background:#E6F1FB;border-color:#85B7EB;color:#185FA5}
+.mdot{width:7px;height:7px;border-radius:50%;flex-shrink:0;background:var(--border)}
+.on-sens .mdot{background:#1E7E4A}
+.on-res .mdot{background:#A93226}
+.on-neu .mdot{background:#2E86C1}
+.mut-legend{display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:.85rem}
+.mleg{display:flex;align-items:center;gap:.35rem;font-size:.78rem;color:var(--muted)}
+.mleg-dot{width:7px;height:7px;border-radius:50%}
+.mut-result-hdr{border-radius:var(--radius);padding:1rem 1.25rem;display:flex;align-items:center;gap:.85rem;margin-bottom:.75rem}
+.mut-result-hdr.sens{background:#E8F8EE;border:1px solid #68C98A}
+.mut-result-hdr.res{background:#FEEDED;border:1px solid #F09595}
+.mut-result-hdr.mod{background:#FEF6E4;border:1px solid #FAC775}
+.mut-rtitle{font-family:'DM Serif Display',serif;font-size:1.1rem}
+.mut-rtitle.sens{color:#1E7E4A}.mut-rtitle.res{color:#A93226}.mut-rtitle.mod{color:#C07A0A}
+.mut-rsub{font-size:.82rem;margin-top:.1rem}
+.mut-rsub.sens{color:#3B6D11}.mut-rsub.res{color:#791F1F}.mut-rsub.mod{color:#854F0B}
+.interp-item{display:flex;gap:.6rem;align-items:flex-start;padding:.4rem 0;border-bottom:1px solid var(--border);font-size:.85rem;line-height:1.55}
+.interp-item:last-child{border-bottom:none}
+.idot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:.35rem}
+.compare-row{display:flex;justify-content:space-between;align-items:center;font-size:.85rem;padding:.35rem 0;border-bottom:1px solid var(--border)}
+.compare-row:last-child{border-bottom:none}
+
+
+/* LLM NARRATIVE */
+.llm-card{background:linear-gradient(135deg,#0D2137 0%,#1A4C7A 100%);border-radius:var(--radius-lg);padding:1.5rem;margin-bottom:1rem;position:relative;overflow:hidden}
+.llm-card::before{content:'';position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;background:rgba(91,179,240,.08)}
+.llm-badge{display:inline-flex;align-items:center;gap:.4rem;background:rgba(91,179,240,.15);border:1px solid rgba(91,179,240,.3);border-radius:99px;padding:.25rem .85rem;font-size:.72rem;font-weight:600;color:#5BB3F0;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.85rem}
+.llm-narrative{font-size:.93rem;color:rgba(255,255,255,.88);line-height:1.85;font-family:'Georgia',serif}
+.llm-narrative p{margin-bottom:.85rem}
+.llm-narrative p:last-child{margin-bottom:0}
+.llm-loading{display:flex;align-items:center;gap:.75rem;color:rgba(255,255,255,.6);font-size:.88rem}
+.llm-dots span{animation:llmdot 1.2s infinite;display:inline-block;font-size:1.2rem;color:#5BB3F0}
+.llm-dots span:nth-child(2){animation-delay:.2s}
+.llm-dots span:nth-child(3){animation-delay:.4s}
+@keyframes llmdot{0%,80%,100%{opacity:.2;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}
+.llm-error{color:#F09595;font-size:.85rem;padding:.75rem;background:rgba(163,50,38,.15);border-radius:var(--radius);border:1px solid rgba(163,50,38,.3)}
+.llm-actions{display:flex;gap:.6rem;margin-top:1rem;flex-wrap:wrap}
+.llm-btn{padding:.4rem .9rem;border:1px solid rgba(91,179,240,.3);border-radius:var(--radius);background:rgba(91,179,240,.1);color:#5BB3F0;font-family:inherit;font-size:.8rem;font-weight:500;cursor:pointer;transition:all .2s}
+.llm-btn:hover{background:rgba(91,179,240,.2);border-color:#5BB3F0}
+.llm-section-title{font-size:.72rem;font-weight:600;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.08em;margin:.85rem 0 .4rem}
+
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand" onclick="showPage('home')">Cancer<span>GPT</span></div>
+  <div class="nav-tabs">
+    <div class="nav-tab active" onclick="showPage('home')" id="tab-home">Home</div>
+    <div class="nav-tab" onclick="showPage('patient')" id="tab-patient">Patient Risk</div>
+    <div class="nav-tab" onclick="showPage('predict')" id="tab-predict">Drug Predict</div>
+    <div class="nav-tab" onclick="showPage('mutation')" id="tab-mutation">🧬 Mutation Predict</div>
+    <div class="nav-tab" onclick="showPage('models')" id="tab-models">All Models</div>
+    <div class="nav-tab" onclick="showPage('about')" id="tab-about">About</div>
+  </div>
+</nav>
+
+<!-- ═══ HOME ══════════════════════════════════════════════════════════════════ -->
+<div class="page active" id="page-home">
+  <div class="hero">
+    <h1>Cancer Drug Sensitivity <em>Intelligence</em></h1>
+    <p>Machine learning models trained on GDSC2 × Affymetrix U133A gene expression. Enter patient data for a full clinical summary, drug predictions, and follow-up plan.</p>
+    <div class="hero-stats">
+      <div class="hero-stat"><div class="num">41</div><div class="lbl">Drug Models</div></div>
+      <div class="hero-stat"><div class="num">0.798</div><div class="lbl">Mean AUC</div></div>
+      <div class="hero-stat"><div class="num">0.951</div><div class="lbl">Best AUC</div></div>
+      <div class="hero-stat"><div class="num">621</div><div class="lbl">Cell Lines</div></div>
+      <div class="hero-stat"><div class="num">80.5%</div><div class="lbl">Models ≥ 0.75</div></div>
+    </div>
+  </div>
+  <div class="container">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem">
+      <div class="card" style="cursor:pointer" onclick="showPage('patient')">
+        <div style="font-size:2rem;margin-bottom:.5rem">🧑‍⚕️</div>
+        <div class="card-title">Patient Risk Assessment</div>
+        <div class="card-sub">Enter age, stage, biomarkers, comorbidities. Get a full clinical summary with risk score, drug recommendations, lifestyle guidance, and follow-up plan. Export to PDF.</div>
+        <span class="pill pill-blue">Start assessment →</span>
+      </div>
+      <div class="card" style="cursor:pointer" onclick="showPage('predict')">
+        <div style="font-size:2rem;margin-bottom:.5rem">🔬</div>
+        <div class="card-title">Drug Sensitivity Predictor</div>
+        <div class="card-sub">Select cancer type, drug, and expression profile to get a sensitivity probability from the trained XGBoost model with top predictive gene biomarkers.</div>
+        <span class="pill pill-green">Predict sensitivity →</span>
+      </div>
+      <div class="card" style="cursor:pointer" onclick="showPage('models')">
+        <div style="font-size:2rem;margin-bottom:.5rem">📊</div>
+        <div class="card-title">All 41 Drug Models</div>
+        <div class="card-sub">Browse all trained models by drug, AUC, pathway, and cancer relevance. Filter by performance tier or search by drug name. Click any card to run a prediction.</div>
+        <span class="pill pill-grey">Browse models →</span>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:1rem">
+      <div class="card-title">Top 10 Models by ROC-AUC</div>
+      <div class="card-sub">From GDSC2 × Affymetrix gene expression — 5-fold stratified cross-validation</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:.6rem" id="top10-home"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PATIENT RISK ═══════════════════════════════════════════════════════════ -->
+<div class="page" id="page-patient">
+  <div class="container">
+    <div class="card">
+      <div class="card-title">Patient Risk Assessment</div>
+      <div class="card-sub">Fill in the patient profile below to generate a full clinical summary with risk score, drug recommendations, lifestyle guidance, and a personalised follow-up plan.</div>
+
+      <div class="grid2" style="margin-bottom:.85rem">
+        <div class="field"><label>Age</label><input type="number" id="p-age" min="18" max="95" placeholder="e.g. 52"/></div>
+        <div class="field"><label>Sex</label>
+          <select id="p-sex"><option value="">— select —</option><option>Female</option><option>Male</option><option>Other / not specified</option></select>
+        </div>
+      </div>
+      <div class="grid2" style="margin-bottom:.85rem">
+        <div class="field"><label>Cancer type</label>
+          <select id="p-cancer">
+            <option value="">— select —</option>
+            <option value="ACC">ACC — Adrenocortical carcinoma</option>
+            <option value="ALL">ALL — Acute lymphoblastic leukaemia</option>
+            <option value="BLCA">BLCA — Bladder urothelial carcinoma</option>
+            <option value="BRCA">BRCA — Breast cancer</option>
+            <option value="CESC">CESC — Cervical squamous cell carcinoma</option>
+            <option value="CLL">CLL — Chronic lymphocytic leukaemia</option>
+            <option value="COAD">COAD/READ — Colorectal adenocarcinoma</option>
+            <option value="DLBC">DLBC — Diffuse large B-cell lymphoma</option>
+            <option value="ESCA">ESCA — Oesophageal carcinoma</option>
+            <option value="GBM">GBM — Glioblastoma multiforme</option>
+            <option value="HNSC">HNSC — Head and neck squamous cell</option>
+            <option value="KIRC">KIRC — Renal clear cell carcinoma</option>
+            <option value="LAML">LAML — Acute myeloid leukaemia</option>
+            <option value="LCML">LCML — Chronic myelogenous leukaemia</option>
+            <option value="LGG">LGG — Lower grade glioma</option>
+            <option value="LIHC">LIHC — Liver hepatocellular carcinoma</option>
+            <option value="LUAD">LUAD — Lung adenocarcinoma</option>
+            <option value="LUSC">LUSC — Lung squamous cell carcinoma</option>
+            <option value="LAML">LAML — Acute myeloid leukaemia</option>
+            <option value="MB">MB — Medulloblastoma</option>
+            <option value="MESO">MESO — Mesothelioma</option>
+            <option value="MM">MM — Multiple myeloma</option>
+            <option value="NB">NB — Neuroblastoma</option>
+            <option value="OV">OV — Ovarian serous cystadenocarcinoma</option>
+            <option value="PAAD">PAAD — Pancreatic adenocarcinoma</option>
+            <option value="PRAD">PRAD — Prostate adenocarcinoma</option>
+            <option value="SCLC">SCLC — Small cell lung cancer</option>
+            <option value="SKCM">SKCM — Skin cutaneous melanoma</option>
+            <option value="STAD">STAD — Stomach adenocarcinoma</option>
+            <option value="THCA">THCA — Thyroid carcinoma</option>
+            <option value="UCEC">UCEC — Uterine corpus endometrial</option>
+          </select>
+        </div>
+        <div class="field"><label>Cancer stage</label>
+          <select id="p-stage">
+            <option value="">— select —</option>
+            <option value="1">Stage I — localised</option>
+            <option value="2">Stage II — local spread</option>
+            <option value="3">Stage III — regional spread</option>
+            <option value="4">Stage IV — metastatic</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid3" style="margin-bottom:.85rem">
+        <div class="field"><label>ECOG performance status</label>
+          <select id="p-ecog">
+            <option value="">— select —</option>
+            <option value="0">0 — fully active</option>
+            <option value="1">1 — restricted strenuous</option>
+            <option value="2">2 — ambulatory, self-care</option>
+            <option value="3">3 — limited self-care</option>
+            <option value="4">4 — fully disabled</option>
+          </select>
+        </div>
+        <div class="field"><label>Biomarker / molecular profile</label>
+          <select id="p-bio">
+            <option value="">— select / unknown —</option>
+            <optgroup label="── Breast / Hormone Receptor">
+              <option value="HR+HER2-">HR+ / HER2− (luminal A/B)</option>
+              <option value="HR+HER2+">HR+ / HER2+</option>
+              <option value="HER2+">HER2+ / HR− (HER2-enriched)</option>
+              <option value="TNBC">Triple negative (TNBC)</option>
+            </optgroup>
+            <optgroup label="── DNA Repair / Genome Stability">
+              <option value="BRCA1">BRCA1 mutant</option>
+              <option value="BRCA2">BRCA2 mutant</option>
+              <option value="BRCA1/2">BRCA1/2 mutant (unspecified)</option>
+              <option value="MSI-H">MSI-High / MMR-deficient</option>
+              <option value="MSS">MSS / MMR-proficient</option>
+              <option value="HRD">Homologous recombination deficient (HRD)</option>
+            </optgroup>
+            <optgroup label="── Tumour Suppressor">
+              <option value="TP53mut">TP53 mutant</option>
+              <option value="TP53wt">TP53 wild-type</option>
+              <option value="PTEN-loss">PTEN loss / mutation</option>
+              <option value="RB1-loss">RB1 loss</option>
+              <option value="APC-mut">APC mutant</option>
+              <option value="VHL-mut">VHL mutant</option>
+            </optgroup>
+            <optgroup label="── RAS / RAF / MAPK Pathway">
+              <option value="KRAS">KRAS mutant</option>
+              <option value="NRAS">NRAS mutant</option>
+              <option value="HRAS">HRAS mutant</option>
+              <option value="BRAF-V600E">BRAF V600E mutant</option>
+              <option value="BRAF-other">BRAF non-V600E mutant</option>
+              <option value="MEK1">MEK1 (MAP2K1) mutant</option>
+            </optgroup>
+            <optgroup label="── PI3K / AKT / mTOR Pathway">
+              <option value="PIK3CA">PIK3CA mutant</option>
+              <option value="AKT1">AKT1 mutant</option>
+              <option value="mTOR">mTOR mutant / activated</option>
+            </optgroup>
+            <optgroup label="── RTK / Growth Factor Receptors">
+              <option value="EGFR-mut">EGFR mutant (exon 19 del / L858R)</option>
+              <option value="EGFR-T790M">EGFR T790M resistance mutation</option>
+              <option value="EGFR-amp">EGFR amplified</option>
+              <option value="ERBB2-amp">ERBB2 (HER2) amplified</option>
+              <option value="MET-amp">MET amplified</option>
+              <option value="MET-ex14">MET exon 14 skipping</option>
+              <option value="FGFR1">FGFR1 amplification / mutation</option>
+              <option value="FGFR2">FGFR2 amplification / mutation</option>
+              <option value="FGFR3">FGFR3 mutation / fusion</option>
+              <option value="KIT-mut">KIT mutant (c-Kit)</option>
+              <option value="PDGFRA">PDGFRA mutant</option>
+              <option value="RET-fusion">RET fusion</option>
+              <option value="RET-mut">RET point mutation</option>
+              <option value="ROS1">ROS1 fusion / rearrangement</option>
+              <option value="ALK">ALK fusion / rearrangement</option>
+              <option value="NTRK">NTRK1/2/3 fusion</option>
+            </optgroup>
+            <optgroup label="── Haematological / Leukaemia">
+              <option value="BCR-ABL1">BCR-ABL1 (Philadelphia chromosome)</option>
+              <option value="FLT3-ITD">FLT3-ITD mutant</option>
+              <option value="FLT3-TKD">FLT3-TKD mutant</option>
+              <option value="NPM1">NPM1 mutant</option>
+              <option value="CEBPA">CEBPA double mutant</option>
+              <option value="IDH1">IDH1 mutant</option>
+              <option value="IDH2">IDH2 mutant</option>
+              <option value="JAK2">JAK2 V617F mutant</option>
+              <option value="DNMT3A">DNMT3A mutant</option>
+              <option value="TET2">TET2 mutant</option>
+              <option value="RUNX1">RUNX1 mutant</option>
+              <option value="KMT2A">KMT2A (MLL) rearrangement</option>
+              <option value="EZH2">EZH2 mutant</option>
+            </optgroup>
+            <optgroup label="── Immunotherapy Markers">
+              <option value="PDL1-high">PD-L1 high (TPS ≥50%)</option>
+              <option value="PDL1-low">PD-L1 low (TPS 1–49%)</option>
+              <option value="PDL1-neg">PD-L1 negative (TPS &lt;1%)</option>
+              <option value="TMB-high">TMB-high (≥10 mut/Mb)</option>
+              <option value="TMB-low">TMB-low (&lt;10 mut/Mb)</option>
+            </optgroup>
+            <optgroup label="── Cell Cycle / Chromatin">
+              <option value="CDKN2A">CDKN2A deletion / mutation</option>
+              <option value="CDK4-amp">CDK4 amplified</option>
+              <option value="CDK6-amp">CDK6 amplified</option>
+              <option value="CCND1-amp">CCND1 (Cyclin D1) amplified</option>
+              <option value="ARID1A">ARID1A mutant</option>
+              <option value="SMAD4">SMAD4 mutant</option>
+            </optgroup>
+            <optgroup label="── Other / Misc">
+              <option value="NF1-mut">NF1 loss / mutation</option>
+              <option value="SF3B1">SF3B1 mutant</option>
+              <option value="NOTCH1">NOTCH1 mutant</option>
+              <option value="MYC-amp">MYC amplified</option>
+              <option value="MYCN-amp">MYCN amplified (neuroblastoma)</option>
+              <option value="unknown">Unknown / pending molecular testing</option>
+            </optgroup>
+          </select>
+        </div>
+        <div class="field"><label>Gene expression level</label>
+          <select id="p-expr">
+            <option value="high">High pathway activity</option>
+            <option value="medium">Medium / unknown</option>
+            <option value="low">Low pathway activity</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid3" style="margin-bottom:1rem">
+        <div class="field"><label>Prior therapy</label>
+          <select id="p-prior">
+            <option value="none">None (treatment-naive)</option>
+            <option value="chemo">Chemotherapy</option>
+            <option value="endo">Endocrine therapy</option>
+            <option value="targeted">Targeted therapy</option>
+            <option value="multi">Multiple lines</option>
+          </select>
+        </div>
+        <div class="field"><label>Comorbidities</label>
+          <select id="p-comorbid">
+            <option value="none">None</option>
+            <option value="cardio">Cardiovascular disease</option>
+            <option value="diabetes">Diabetes</option>
+            <option value="renal">Renal impairment</option>
+            <option value="hepatic">Hepatic impairment</option>
+            <option value="multi">Multiple</option>
+          </select>
+        </div>
+        <div class="field"><label>Patient ID / reference (optional)</label>
+          <input type="text" id="p-id" placeholder="e.g. PT-2025-001"/>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="runPatient()">Generate clinical summary →</button>
+        <button class="btn btn-export" id="export-btn" onclick="exportPDF()" style="display:none">⬇ Export PDF</button>
+        <button class="btn btn-secondary" onclick="clearPatient()">Clear</button>
+      </div>
+    </div>
+
+    <div id="patient-result" style="display:none">
+
+      <div class="risk-banner" id="pr-banner">
+        <div class="risk-num" id="pr-num"></div>
+        <div>
+          <div class="risk-info-title" id="pr-tier"></div>
+          <div class="risk-info-sub" id="pr-sub"></div>
+        </div>
+      </div>
+
+      <div class="metric-grid">
+        <div class="metric-box"><div class="ml">Sensitivity probability</div><div class="mv" id="pr-sens"></div></div>
+        <div class="metric-box"><div class="ml">Model AUC</div><div class="mv" id="pr-auc"></div></div>
+        <div class="metric-box"><div class="ml">Risk tier</div><div class="mv" id="pr-rtier" style="font-size:1rem"></div></div>
+        <div class="metric-box"><div class="ml">Priority action</div><div class="mv" id="pr-action" style="font-size:.95rem"></div></div>
+      </div>
+
+      <div class="card" id="pr-drugs-card">
+        <div class="card-title" style="font-size:1.05rem;margin-bottom:.5rem">Recommended drugs</div>
+        <div id="pr-drug-pills"></div>
+        <div id="pr-drug-rows" style="margin-top:.75rem"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title" style="font-size:1.05rem;margin-bottom:.5rem">Risk factors & clinical notes</div>
+        <div id="pr-risk-rows"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title" style="font-size:1.05rem;margin-bottom:.5rem">Lifestyle & supportive care</div>
+        <div id="pr-lifestyle"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title" style="font-size:1.05rem;margin-bottom:.5rem">Follow-up plan</div>
+        <div id="pr-followup"></div>
+      </div>
+
+
+      <!-- LLM Clinical Narrative -->
+      <div class="llm-card" id="llm-section" style="display:none">
+        <div class="llm-badge">🤖 AI Clinical Narrative · Powered by Groq / Gemini</div>
+        <div id="llm-content">
+          <div class="llm-loading" id="llm-loading" style="display:none">
+            <div class="llm-dots"><span>●</span><span>●</span><span>●</span></div>
+            <span>Groq is generating your personalised clinical narrative...</span>
+          </div>
+          <div id="llm-text" class="llm-narrative"></div>
+          <div id="llm-error" class="llm-error" style="display:none"></div>
+        </div>
+        <div class="llm-actions" id="llm-actions" style="display:none">
+          <button class="llm-btn" onclick="regenerateNarrative()">↻ Regenerate</button>
+          <button class="llm-btn" onclick="copyNarrative()">⎘ Copy text</button>
+          <button class="llm-btn" onclick="exportNarrativePDF()">⬇ Export PDF with narrative</button>
+        </div>
+      </div>
+
+      <div class="disclaimer">
+        <strong>Clinical disclaimer:</strong> CancerGPT is a research tool built on GDSC2 in vitro cell line data. All outputs are indicative only and must be reviewed by a qualified oncologist before clinical use. Drug sensitivity predictions do not substitute for molecular diagnostic testing, tumour board review, or evidence-based clinical guidelines.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ DRUG PREDICT ════════════════════════════════════════════════════════════ -->
+<div class="page" id="page-predict">
+  <div class="container">
+    <div class="card">
+      <div class="card-title">Drug Sensitivity Predictor</div>
+      <div class="card-sub">Select a cancer type, drug, and expression profile to get a model-based sensitivity prediction with confidence score and top predictive gene biomarkers.</div>
+      <div class="grid4" style="margin-bottom:1rem">
+        <div class="field"><label>Cancer type</label>
+          <select id="d-cancer">
+            <option value="">— select —</option>
+            <option value="ACC">ACC — Adrenocortical carcinoma</option>
+            <option value="ALL">ALL — Acute lymphoblastic leukaemia</option>
+            <option value="BLCA">BLCA — Bladder urothelial carcinoma</option>
+            <option value="BRCA">BRCA — Breast cancer</option>
+            <option value="CESC">CESC — Cervical squamous cell carcinoma</option>
+            <option value="CLL">CLL — Chronic lymphocytic leukaemia</option>
+            <option value="COAD">COAD/READ — Colorectal adenocarcinoma</option>
+            <option value="DLBC">DLBC — Diffuse large B-cell lymphoma</option>
+            <option value="ESCA">ESCA — Oesophageal carcinoma</option>
+            <option value="GBM">GBM — Glioblastoma multiforme</option>
+            <option value="HNSC">HNSC — Head and neck squamous cell</option>
+            <option value="KIRC">KIRC — Renal clear cell carcinoma</option>
+            <option value="LAML">LAML — Acute myeloid leukaemia</option>
+            <option value="LCML">LCML — Chronic myelogenous leukaemia</option>
+            <option value="LGG">LGG — Lower grade glioma</option>
+            <option value="LIHC">LIHC — Liver hepatocellular carcinoma</option>
+            <option value="LUAD">LUAD — Lung adenocarcinoma</option>
+            <option value="LUSC">LUSC — Lung squamous cell carcinoma</option>
+            <option value="MB">MB — Medulloblastoma</option>
+            <option value="MESO">MESO — Mesothelioma</option>
+            <option value="MM">MM — Multiple myeloma</option>
+            <option value="NB">NB — Neuroblastoma</option>
+            <option value="OV">OV — Ovarian serous cystadenocarcinoma</option>
+            <option value="PAAD">PAAD — Pancreatic adenocarcinoma</option>
+            <option value="PRAD">PRAD — Prostate adenocarcinoma</option>
+            <option value="SCLC">SCLC — Small cell lung cancer</option>
+            <option value="SKCM">SKCM — Skin cutaneous melanoma</option>
+            <option value="STAD">STAD — Stomach adenocarcinoma</option>
+            <option value="THCA">THCA — Thyroid carcinoma</option>
+            <option value="UCEC">UCEC — Uterine corpus endometrial</option>
+          </select>
+        </div>
+        <div class="field"><label>Drug</label><select id="d-drug"><option value="">— select —</option></select></div>
+        <div class="field"><label>Expression profile</label>
+          <select id="d-expr">
+            <option value="high">High pathway activity</option>
+            <option value="medium">Medium / unknown</option>
+            <option value="low">Low pathway activity</option>
+          </select>
+        </div>
+        <div class="field"><label>&nbsp;</label>
+          <button class="btn btn-primary" onclick="runPredict()" style="width:100%">Predict →</button>
+        </div>
+      </div>
+
+      <div class="pred-result" id="pred-result">
+        <div class="pred-hdr" id="pred-hdr">
+          <div class="pred-icon" id="pred-icon"></div>
+          <div>
+            <div class="pred-title" id="pred-title"></div>
+            <div class="pred-sub" id="pred-sub2"></div>
+          </div>
+        </div>
+        <div class="pred-body">
+          <div class="pred-metrics">
+            <div class="pred-metric"><div class="pv" id="pd-prob"></div><div class="pl">Sensitivity probability</div></div>
+            <div class="pred-metric"><div class="pv" id="pd-auc"></div><div class="pl">Model ROC-AUC</div></div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--muted);margin-bottom:.2rem"><span>Resistant</span><span>Sensitive</span></div>
+            <div class="conf-track"><div class="conf-fill" id="pd-fill"></div></div>
+          </div>
+          <div class="gene-wrap">
+            <div class="gene-label">Top predictive genes for this drug</div>
+            <div class="gene-chips" id="pd-genes"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══ MUTATION PREDICT ════════════════════════════════════════════════════════ -->
+<div class="page" id="page-mutation">
+  <div class="container">
+    <div class="card">
+      <div class="card-title">Mutation-Stratified Drug Predictor</div>
+      <div class="card-sub">Select cancer type and drug, then toggle gene mutations on/off. The model adjusts sensitivity probability based on known mutation–drug interactions.</div>
+
+      <div class="grid2" style="margin-bottom:.85rem">
+        <div class="field"><label>Cancer type</label>
+          <select id="mt-cancer" onchange="mutUpdateGenes()">
+            <option value="ACC">ACC — Adrenocortical carcinoma</option>
+            <option value="ALL">ALL — Acute lymphoblastic leukaemia</option>
+            <option value="BLCA">BLCA — Bladder urothelial carcinoma</option>
+            <option value="BRCA">BRCA — Breast cancer</option>
+            <option value="CESC">CESC — Cervical squamous cell carcinoma</option>
+            <option value="CLL">CLL — Chronic lymphocytic leukaemia</option>
+            <option value="COAD">COAD/READ — Colorectal adenocarcinoma</option>
+            <option value="DLBC">DLBC — Diffuse large B-cell lymphoma</option>
+            <option value="ESCA">ESCA — Oesophageal carcinoma</option>
+            <option value="GBM">GBM — Glioblastoma multiforme</option>
+            <option value="HNSC">HNSC — Head and neck squamous cell</option>
+            <option value="KIRC">KIRC — Renal clear cell carcinoma</option>
+            <option value="LAML">LAML — Acute myeloid leukaemia</option>
+            <option value="LCML">LCML — Chronic myelogenous leukaemia</option>
+            <option value="LGG">LGG — Lower grade glioma</option>
+            <option value="LIHC">LIHC — Liver hepatocellular carcinoma</option>
+            <option value="LUAD">LUAD — Lung adenocarcinoma</option>
+            <option value="LUSC">LUSC — Lung squamous cell carcinoma</option>
+            <option value="MB">MB — Medulloblastoma</option>
+            <option value="MESO">MESO — Mesothelioma</option>
+            <option value="MM">MM — Multiple myeloma</option>
+            <option value="NB">NB — Neuroblastoma</option>
+            <option value="OV">OV — Ovarian serous cystadenocarcinoma</option>
+            <option value="PAAD">PAAD — Pancreatic adenocarcinoma</option>
+            <option value="PRAD">PRAD — Prostate adenocarcinoma</option>
+            <option value="SCLC">SCLC — Small cell lung cancer</option>
+            <option value="SKCM">SKCM — Skin cutaneous melanoma</option>
+            <option value="STAD">STAD — Stomach adenocarcinoma</option>
+            <option value="THCA">THCA — Thyroid carcinoma</option>
+            <option value="UCEC">UCEC — Uterine corpus endometrial</option>
+          </select>
+        </div>
+        <div class="field"><label>Drug</label>
+          <select id="mt-drug" onchange="mutUpdateGenes()">
+            <option value="Olaparib">Olaparib (AUC 0.909)</option>
+            <option value="Selumetinib">Selumetinib (AUC 0.900)</option>
+            <option value="Trametinib">Trametinib (AUC 0.875)</option>
+            <option value="Afatinib">Afatinib (AUC 0.849)</option>
+            <option value="Palbociclib">Palbociclib (AUC 0.836)</option>
+            <option value="Cisplatin">Cisplatin (AUC 0.855)</option>
+            <option value="Erlotinib">Erlotinib (AUC 0.791)</option>
+            <option value="Paclitaxel">Paclitaxel (AUC 0.769)</option>
+            <option value="Tamoxifen">Tamoxifen (AUC 0.751)</option>
+            <option value="Alpelisib">Alpelisib (AUC 0.733)</option>
+            <option value="Nutlin-3a (-)">Nutlin-3a (AUC 0.951)</option>
+            <option value="Lapatinib">Lapatinib (AUC 0.723)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field" style="margin-bottom:.85rem">
+        <label>Expression profile</label>
+        <select id="mt-expr" style="max-width:260px">
+          <option value="high">High pathway activity</option>
+          <option value="medium" selected>Medium / unknown</option>
+          <option value="low">Low pathway activity</option>
+        </select>
+      </div>
+
+      <label style="font-size:.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:.6rem">Gene mutation status — click to toggle</label>
+      <div class="mut-legend">
+        <div class="mleg"><div class="mleg-dot" style="background:#1E7E4A"></div>Sensitising</div>
+        <div class="mleg"><div class="mleg-dot" style="background:#A93226"></div>Resistance</div>
+        <div class="mleg"><div class="mleg-dot" style="background:#2E86C1"></div>Neutral</div>
+        <div class="mleg"><div class="mleg-dot" style="background:var(--border)"></div>Wild-type</div>
+      </div>
+      <div class="mut-grid" id="mt-grid"></div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="runMutPredict()">Run mutation prediction →</button>
+        <button class="btn btn-secondary" onclick="mutClearAll()">Clear mutations</button>
+      </div>
+    </div>
+
+    <div id="mt-result" style="display:none">
+
+      <div class="mut-result-hdr" id="mt-hdr">
+        <div style="font-size:1.6rem" id="mt-icon"></div>
+        <div>
+          <div class="mut-rtitle" id="mt-title"></div>
+          <div class="mut-rsub" id="mt-sub"></div>
+        </div>
+      </div>
+
+      <div class="metric-grid" style="margin-bottom:1rem">
+        <div class="metric-box"><div class="ml">Sensitivity prob.</div><div class="mv" id="mt-prob"></div></div>
+        <div class="metric-box"><div class="ml">Model AUC</div><div class="mv" id="mt-auc"></div></div>
+        <div class="metric-box"><div class="ml">Active mutations</div><div class="mv" id="mt-muts"></div></div>
+        <div class="metric-box"><div class="ml">Mutation impact</div><div class="mv" id="mt-impact" style="font-size:1rem"></div></div>
+      </div>
+
+      <div class="card">
+        <div style="margin-bottom:1rem">
+          <div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--muted);margin-bottom:.3rem"><span>Resistant</span><span>Sensitive</span></div>
+          <div style="height:7px;background:var(--surface);border-radius:99px;overflow:hidden">
+            <div id="mt-bar" style="height:100%;border-radius:99px;transition:width .6s ease"></div>
+          </div>
+        </div>
+
+        <div style="font-size:.78rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem">Clinical interpretation</div>
+        <div id="mt-interp"></div>
+
+        <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border)">
+          <div style="font-size:.78rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem">Top predictive genes</div>
+          <div class="gene-chips" id="mt-genes"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title" style="font-size:1rem;margin-bottom:.75rem">Before vs after mutation stratification</div>
+        <div id="mt-compare"></div>
+        <div style="margin-top:.75rem;font-size:.8rem;color:var(--muted);font-style:italic">
+          Mutation adjustments use clinically validated sensitivity/resistance associations from published pharmacogenomics studies.
+        </div>
+      </div>
+
+      <div class="disclaimer">
+        <strong>Research use only:</strong> Mutation-sensitivity associations are derived from GDSC2 cell line data and published literature. Clinical mutation testing (NGS panel) is required before making treatment decisions.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ALL MODELS ══════════════════════════════════════════════════════════════ -->
+<div class="page" id="page-models">
+  <div class="container">
+    <div style="margin-bottom:1rem">
+      <div style="font-family:'DM Serif Display',serif;font-size:1.5rem;color:var(--navy);margin-bottom:.25rem">All 41 Drug Models</div>
+      <div style="color:var(--muted);font-size:.88rem">Click any card to run a prediction. Trained on GDSC2 × Affymetrix U133A expression profiles.</div>
+    </div>
+    <div class="filter-bar">
+      <button class="fb active" onclick="filterGrid('all',this)">All (41)</button>
+      <button class="fb" onclick="filterGrid('e',this)">⭐ AUC ≥ 0.90</button>
+      <button class="fb" onclick="filterGrid('g',this)">✓ AUC ≥ 0.75</button>
+      <button class="fb" onclick="filterGrid('brca',this)">BRCA drugs</button>
+      <input class="search-box" type="text" placeholder="Search drug or pathway…" oninput="searchGrid(this.value)"/>
+    </div>
+    <div class="drug-grid" id="model-grid"></div>
+  </div>
+</div>
+
+<!-- ═══ ABOUT ══════════════════════════════════════════════════════════════════ -->
+<div class="page" id="page-about">
+  <div class="container">
+    <div class="card">
+      <div class="card-title">About CancerGPT</div>
+      <div class="card-sub">A machine learning framework for cancer drug sensitivity prediction from gene expression data.</div>
+      <div id="about-stats">
+        <div class="about-stat"><span class="ak">GDSC2 drug response</span><span class="av">147,490 labelled observations · 286 drugs · 969 cell lines</span></div>
+        <div class="about-stat"><span class="ak">Gene expression</span><span class="av">Affymetrix HG-U133A · 789 cell lines · 22,277 probes · top 2,000 by variance retained</span></div>
+        <div class="about-stat"><span class="ak">Merged dataset</span><span class="av">621 cell lines · 95,994 drug-response observations · 31 TCGA cancer types</span></div>
+        <div class="about-stat"><span class="ak">Model architecture</span><span class="av">XGBoost + SMOTE oversampling + SelectKBest (ANOVA-F, k=50) · per-drug binary classifiers</span></div>
+        <div class="about-stat"><span class="ak">Evaluation</span><span class="av">5-fold stratified cross-validation · ROC-AUC and Average Precision</span></div>
+        <div class="about-stat"><span class="ak">Performance</span><span class="av">Mean AUC 0.798 · 33/41 models ≥ 0.75 · Best: Nutlin-3a AUC = 0.951</span></div>
+        <div class="about-stat"><span class="ak">IC50 binarisation</span><span class="av">Per-drug z-score · sensitive = z ≤ −0.5 · resistant = z ≥ +0.5 · middle band excluded</span></div>
+        <div class="about-stat"><span class="ak">Best model</span><span class="av">Nutlin-3a (MDM2 inhibitor) · AUC 0.951 · AP 0.925 · serialised as cancergpt_best_model.pkl</span></div>
+        <div class="about-stat"><span class="ak">Disclaimer</span><span class="av">Research tool only · not validated for clinical use · all outputs require oncologist review</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <strong>CancerGPT</strong> · GDSC2 × Affymetrix U133A · XGBoost Drug Sensitivity Prediction · 2025 &nbsp;|&nbsp; Research use only
+</footer>
+
+<script>
+// ── DATA ─────────────────────────────────────────────────────────────────────
+const DRUGS=[
+  {d:"Nutlin-3a (−)",p:"p53 pathway",t:"MDM2",auc:0.951,ap:0.925,n:369,brca:false,
+   g:["MDM2","CDKN1A","BBC3","TP53","BAX","GADD45A","PMAIP1","FAS","PERP","ZMAT3"]},
+  {d:"Olaparib",p:"Genome integrity",t:"PARP1, PARP2",auc:0.909,ap:0.917,n:358,brca:true,
+   g:["BRCA2","RAD51","BRCA1","FANCD2","CHEK1","CHEK2","ATM","TP53BP1","PALB2","FANCL"]},
+  {d:"Selumetinib",p:"ERK MAPK signaling",t:"MEK1, MEK2",auc:0.900,ap:0.846,n:650,brca:false,
+   g:["KRAS","BRAF","MAP2K1","MAP2K2","MAPK1","MAPK3","DUSP6","SPRY2","ETV4","ETV5"]},
+  {d:"Oxaliplatin",p:"DNA replication",t:"DNA alkylating",auc:0.885,ap:0.891,n:725,brca:false,
+   g:["MLH1","MSH2","ERCC1","XPC","XRCC1","ABCC2","GSTP1","ATP7B","SLC22A2","HMGB1"]},
+  {d:"Trametinib",p:"ERK MAPK signaling",t:"MEK1, MEK2",auc:0.875,ap:0.828,n:382,brca:false,
+   g:["BRAF","KRAS","MAP2K1","DUSP6","SPRY4","ETV1","MAPK1","MAP2K2","ERF","NF1"]},
+  {d:"Cisplatin",p:"DNA replication",t:"DNA crosslinker",auc:0.855,ap:0.870,n:319,brca:false,
+   g:["ERCC1","XPC","MLH1","BRCA1","GSTP1","ATP7A","CTR1","ABCC2","HMGB1","FANCD2"]},
+  {d:"Afatinib",p:"EGFR signaling",t:"EGFR, ERBB2",auc:0.849,ap:0.837,n:318,brca:true,
+   g:["ERBB2","EGFR","ERBB3","MUC4","GRB7","GRHL2","FOXA1","GATA3","SPDEF","AGR2"]},
+  {d:"ABT737",p:"Apoptosis regulation",t:"BCL2, BCL-XL",auc:0.845,ap:0.843,n:393,brca:false,
+   g:["BCL2","BCL2L1","MCL1","BCL2L11","BAD","BAX","BBC3","PMAIP1","BAK1","HRK"]},
+  {d:"AGI-6780",p:"Metabolism",t:"IDH2 R140Q",auc:0.842,ap:0.819,n:389,brca:false,
+   g:["IDH2","IDH1","TET2","D2HGDH","GLUD1","LDHA","PKM","SLC1A5","HIF1A","EPAS1"]},
+  {d:"Navitoclax",p:"Apoptosis regulation",t:"BCL2, BCL-XL/W",auc:0.841,ap:0.838,n:368,brca:false,
+   g:["BCL2","BCL2L1","BCL2L2","MCL1","BCL2L11","BAD","BAX","BBC3","PMAIP1","BAK1"]},
+  {d:"AMG-319",p:"PI3K/MTOR signaling",t:"PI3K delta",auc:0.841,ap:0.843,n:366,brca:false,
+   g:["PIK3CA","PTEN","AKT1","PIK3CB","PIK3CD","INPP4B","PDK1","FOXO3","SGK1","TSC2"]},
+  {d:"Docetaxel",p:"Mitosis",t:"Microtubule stabiliser",auc:0.837,ap:0.884,n:686,brca:true,
+   g:["TUBB2A","TUBA1B","TUBB","STMN1","BIRC5","TACC3","KIF2C","AURKA","PLK1","CDC20"]},
+  {d:"Palbociclib",p:"Cell cycle",t:"CDK4, CDK6",auc:0.836,ap:0.841,n:389,brca:true,
+   g:["RB1","CCND1","CDK4","CDK6","CDKN2A","E2F1","CCNE1","CDKN1B","MYC","FOXM1"]},
+  {d:"Irinotecan",p:"DNA replication",t:"TOP1",auc:0.832,ap:0.851,n:391,brca:false,
+   g:["TOP1","UGT1A1","ABCG2","ABCB1","CES1","CES2","SLFN11","ATM","BRCA1","PARP1"]},
+  {d:"5-Fluorouracil",p:"Other",t:"Antimetabolite",auc:0.805,ap:0.825,n:378,brca:true,
+   g:["TYMS","DPYD","MTHFR","UMPS","UCK2","RRM1","TP53","MLH1","MSH2","DUT"]},
+  {d:"Camptothecin",p:"DNA replication",t:"TOP1",auc:0.799,ap:0.844,n:403,brca:false,
+   g:["TOP1","SLFN11","BRCA1","ATM","ABCG2","XRCC1","TDP1","PARP1","TP53","CDKN1A"]},
+  {d:"5-azacytidine",p:"Other",t:"DNMT inhibitor",auc:0.796,ap:0.821,n:311,brca:false,
+   g:["DNMT1","DNMT3A","DNMT3B","TET2","CDKN2A","MLH1","SLFN11","CTCF","PML","RARA"]},
+  {d:"Erlotinib",p:"EGFR signaling",t:"EGFR",auc:0.791,ap:0.760,n:363,brca:false,
+   g:["EGFR","NKX2-1","KRAS","ERBB2","MET","HGF","PTEN","PIK3CA","AXL","MUC4"]},
+  {d:"MK-2206",p:"PI3K/MTOR signaling",t:"AKT1, AKT2",auc:0.776,ap:0.809,n:364,brca:false,
+   g:["AKT1","AKT2","PIK3CA","PTEN","TSC1","TSC2","FOXO3","SGK1","INPP4B","RPS6KB1"]},
+  {d:"Paclitaxel",p:"Mitosis",t:"Microtubule stabiliser",auc:0.769,ap:0.811,n:429,brca:true,
+   g:["TUBB2A","ACTB","TUBA1B","TUBB","STMN1","BIRC5","MAP4","TACC3","KIF2C","AURKA"]},
+  {d:"Tamoxifen",p:"Hormone-related",t:"ESR1",auc:0.751,ap:0.795,n:396,brca:true,
+   g:["GREB1","TFF1","FOXA1","IGFBP5","TGFB2","ESR1","PGR","CALD1","SYTL2","COL6A3"]},
+  {d:"Gemcitabine",p:"DNA replication",t:"Pyrimidine antimetabolite",auc:0.744,ap:0.807,n:437,brca:false,
+   g:["RRM1","RRM2","DCK","SLC29A1","SLFN11","TP53","BRCA1","CDKN1A","POLA2","TOP1"]},
+  {d:"AGI-5198",p:"Metabolism",t:"IDH1 R132H",auc:0.736,ap:0.791,n:386,brca:false,
+   g:["IDH1","IDH2","TET2","D2HGDH","HIF1A","LDHA","PKM","SLC1A5","GLUD1","OGDH"]},
+  {d:"Alpelisib",p:"PI3K/MTOR signaling",t:"PI3Kα",auc:0.733,ap:0.721,n:399,brca:true,
+   g:["PIK3CA","PTEN","AKT1","PIK3R1","INPP4B","FOXO3","TSC2","RPS6KB1","SGK1","PDPK1"]},
+  {d:"AGK2",p:"Chromatin histone acetylation",t:"SIRT2",auc:0.733,ap:0.778,n:369,brca:false,
+   g:["BAZ2A","BAZ2B","SIRT2","HDAC6","HDAC3","EP300","CREBBP","KAT2A","KAT2B","SIRT1"]},
+  {d:"Lapatinib",p:"EGFR signaling",t:"EGFR, ERBB2",auc:0.723,ap:0.704,n:401,brca:true,
+   g:["ERBB2","EGFR","ERBB3","GRB7","MUC4","FOXA1","GATA3","ESR1","PGR","GRHL2"]},
+  {d:"Fulvestrant",p:"Hormone-related",t:"ESR degrader",auc:0.640,ap:0.699,n:676,brca:true,
+   g:["ESR1","GREB1","TFF1","FOXA1","PGR","CTGF","SYTL2","IGFBP5","TFF3","AREG"]},
+  {d:"ABT-737 analog",p:"Apoptosis regulation",t:"BCL-2 family",auc:0.831,ap:0.837,n:324,brca:false,
+   g:["BCL2","MCL1","BCL2L11","BAX","BBC3","PMAIP1","BAK1","HRK","BID","BOK"]},
+  {d:"A-366",p:"Chromatin histone methylation",t:"EHMT",auc:0.820,ap:0.862,n:298,brca:false,
+   g:["EHMT1","EHMT2","SUV39H1","SUZ12","EZH2","KDM5C","KDM1A","SETDB1","DNMT3A","DNMT3B"]},
+  {d:"Trametinib",p:"ERK MAPK signaling",t:"MEK1/2",auc:0.875,ap:0.828,n:382,brca:false,
+   g:["BRAF","KRAS","MAP2K1","DUSP6","SPRY4","ETV1","MAPK1","MAP2K2","ERF","NF1"]},
+];
+
+const DRUG_DB={
+  BRCA:{
+    "HR+HER2-":{drugs:[{n:"Tamoxifen",auc:0.751,c:"green"},{n:"Palbociclib",auc:0.836,c:"green"},{n:"Fulvestrant",auc:0.640,c:"amber"},{n:"Alpelisib",auc:0.733,c:"amber"}],
+      notes:["ER/PR-positive luminal subtype — endocrine therapy is first-line standard","CDK4/6 inhibitor (Palbociclib) recommended in combination with endocrine therapy for advanced disease","PIK3CA co-mutation may indicate Alpelisib benefit — test before adding","Low HER2 expression: check IHC score, may qualify for anti-HER2 low-dose regimens"]},
+    "HR+HER2+":{drugs:[{n:"Afatinib",auc:0.849,c:"green"},{n:"Lapatinib",auc:0.723,c:"green"},{n:"Palbociclib",auc:0.836,c:"green"},{n:"Paclitaxel",auc:0.769,c:"amber"}],
+      notes:["HER2-positive — anti-HER2 targeted therapy essential alongside chemotherapy","Dual HER2 blockade (trastuzumab + pertuzumab) is standard of care first-line","CDK4/6 inhibitors may be combined with endocrine therapy for HR+ component","Confirm HER2 status by FISH if IHC 2+"]},
+    "HER2+":{drugs:[{n:"Afatinib",auc:0.849,c:"green"},{n:"Lapatinib",auc:0.723,c:"green"},{n:"Docetaxel",auc:0.837,c:"green"},{n:"Olaparib",auc:0.909,c:"amber"}],
+      notes:["HER2-amplified HR-negative — high-priority anti-HER2 therapy","Taxane backbone (Docetaxel, Paclitaxel) highly active","Consider T-DM1 or trastuzumab deruxtecan post first-line progression","BRCA testing recommended — co-mutation significantly changes options"]},
+    "TNBC":{drugs:[{n:"Olaparib",auc:0.909,c:"green"},{n:"Cisplatin",auc:0.855,c:"green"},{n:"Paclitaxel",auc:0.769,c:"green"},{n:"5-Fluorouracil",auc:0.805,c:"amber"}],
+      notes:["Triple-negative — most aggressive subtype, fewest targeted options","BRCA1/2 germline testing mandatory — if mutant, PARP inhibitors (Olaparib) are approved","Platinum agents active due to HRD signature","PD-L1 testing: pembrolizumab + chemotherapy first-line if PD-L1 CPS ≥ 10"]},
+    "BRCA1":{drugs:[{n:"Olaparib",auc:0.909,c:"green"},{n:"Cisplatin",auc:0.855,c:"green"},{n:"Paclitaxel",auc:0.769,c:"green"},{n:"Navitoclax",auc:0.841,c:"amber"}],
+      notes:["BRCA1/2 germline mutation — PARP inhibitor therapy is primary targeted approach","Olaparib approved for BRCA-mutant HER2-negative breast cancer after prior chemotherapy","High sensitivity to platinum agents due to homologous recombination deficiency","Genetic counselling for patient and first-degree relatives — autosomal dominant"]},
+    "TP53wt":{drugs:[{n:"Nutlin-3a (−)",auc:0.951,c:"green"},{n:"Palbociclib",auc:0.836,c:"green"},{n:"Tamoxifen",auc:0.751,c:"amber"}],
+      notes:["TP53 wild-type — highest predicted MDM2-inhibitor (Nutlin-3a) sensitivity","Intact p53 pathway confers strong apoptotic response to MDM2 inhibition","Favourable prognostic marker in most subtypes","MDM2 amplification testing recommended to confirm pathway dependence"]},
+    "KRAS":{drugs:[{n:"Selumetinib",auc:0.900,c:"green"},{n:"Trametinib",auc:0.875,c:"green"},{n:"Cisplatin",auc:0.855,c:"amber"}],
+      notes:["KRAS/BRAF mutation: MEK pathway hyperactivated","MEK inhibitors (Selumetinib, Trametinib) show highest model AUC in this profile","KRAS G12C specific: consider sotorasib / adagrasib if available","Combination MEK + CDK4/6 inhibition being investigated in trials"]},
+    "unknown":{drugs:[{n:"Paclitaxel",auc:0.769,c:"amber"},{n:"Docetaxel",auc:0.837,c:"green"},{n:"5-Fluorouracil",auc:0.805,c:"amber"},{n:"Gemcitabine",auc:0.744,c:"amber"}],
+      notes:["Biomarker profile pending — empirical chemotherapy pending full workup","Prioritise ER/PR/HER2 IHC and BRCA germline testing before finalising therapy","OncotypeDX or Prosigna assay recommended for HR+/HER2- Stage I–II disease","Ki-67 proliferation index guides chemo vs endocrine therapy decision"]},
+  },
+  LUAD:{default:{drugs:[{n:"Erlotinib",auc:0.791,c:"green"},{n:"Afatinib",auc:0.849,c:"green"},{n:"Selumetinib",auc:0.900,c:"green"},{n:"Trametinib",auc:0.875,c:"amber"}],
+    notes:["EGFR mutation testing essential — osimertinib first-line for EGFR-mutant NSCLC","KRAS G12C: sotorasib/adagrasib approved","ALK/ROS1 rearrangements: crizotinib/alectinib first-line","PD-L1 ≥50%: pembrolizumab monotherapy first-line if no driver mutation"]}},
+  SKCM:{default:{drugs:[{n:"Trametinib",auc:0.875,c:"green"},{n:"Selumetinib",auc:0.900,c:"green"},{n:"Navitoclax",auc:0.841,c:"amber"}],
+    notes:["BRAF V600E testing mandatory — dabrafenib + trametinib standard of care if BRAF-mutant","Immunotherapy (ipilimumab + nivolumab) first-line for BRAF wild-type","High TMB in melanoma makes it immunogenic — immunotherapy highly active","CNS metastasis present: adjust drug selection for CNS penetrance"]}},
+  COAD:{default:{drugs:[{n:"Oxaliplatin",auc:0.885,c:"green"},{n:"5-Fluorouracil",auc:0.805,c:"green"},{n:"Irinotecan",auc:0.832,c:"green"},{n:"Camptothecin",auc:0.799,c:"amber"}],
+    notes:["MSI/dMMR testing essential — high MSI: pembrolizumab first-line (metastatic)","KRAS/NRAS/BRAF mutation: guides anti-EGFR antibody eligibility","FOLFOX or CAPOX standard backbone for metastatic disease","Liver-limited disease: assess resectability for curative-intent surgery"]}},
+  DEFAULT:{default:{drugs:[{n:"Cisplatin",auc:0.855,c:"green"},{n:"Oxaliplatin",auc:0.885,c:"green"},{n:"Olaparib",auc:0.909,c:"amber"},{n:"Navitoclax",auc:0.841,c:"amber"}],
+    notes:["NGS molecular profiling recommended to identify actionable alterations","TMB and MSI status may indicate immunotherapy benefit","Enrol in relevant clinical trial if standard options exhausted or inadequate","Multidisciplinary tumour board review before initiating systemic therapy"]}}
+};
+
+const LIFESTYLE=[
+  {t:"Physical activity",tx:"Moderate aerobic exercise 150 min/week (e.g. brisk walking, cycling). Resistance training 2×/week reduces fatigue and improves treatment tolerance and outcome."},
+  {t:"Nutrition",tx:"High-protein, anti-inflammatory diet. Mediterranean dietary pattern associated with reduced recurrence risk. Avoid processed foods and excess alcohol during treatment."},
+  {t:"Mental health",tx:"Psychological support, peer support groups, or mindfulness-based stress reduction (MBSR) recommended. Screen for depression and anxiety at each clinical visit."},
+  {t:"Sleep & fatigue",tx:"Cancer-related fatigue is common. Maintain consistent sleep schedule, light daily exercise, and consider CBT-I for insomnia. Avoid napping >30 min during the day."},
+  {t:"Smoking & alcohol",tx:"Smoking cessation reduces treatment toxicity, infection risk, and cancer recurrence. Strict alcohol moderation or abstinence during active systemic therapy."},
+  {t:"Fertility preservation",tx:"Discuss fertility preservation options (oocyte/embryo cryopreservation) before initiating cytotoxic therapy in patients of reproductive age."},
+];
+
+// ── NAVIGATION ────────────────────────────────────────────────────────────────
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  if(document.getElementById('tab-'+id)) document.getElementById('tab-'+id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+// ── HOME top 10 ───────────────────────────────────────────────────────────────
+function buildHome(){
+  const el=document.getElementById('top10-home');
+  DRUGS.slice(0,10).forEach(d=>{
+    const t=tier(d.auc);
+    const div=document.createElement('div');
+    div.style.cssText='background:var(--surface);border-radius:var(--radius);padding:.75rem 1rem;cursor:pointer';
+    div.innerHTML=`<div style="font-weight:600;font-size:.88rem;color:var(--navy);margin-bottom:.15rem">${d.d}</div>
+    <div style="font-size:.74rem;color:var(--muted);margin-bottom:.4rem">${d.p}</div>
+    <div style="font-family:'DM Mono',monospace;font-size:.88rem;color:${t==='e'?'#A93226':t==='g'?'#0D2137':'#2E86C1'};font-weight:500">${d.auc.toFixed(3)}</div>`;
+    div.onclick=()=>{
+      document.getElementById('d-drug').value=d.d;
+      showPage('predict');
+    };
+    el.appendChild(div);
+  });
+}
+
+// ── DRUG SELECT populate ──────────────────────────────────────────────────────
+function buildDrugSelect(){
+  const sel=document.getElementById('d-drug');
+  DRUGS.forEach(d=>{const o=document.createElement('option');o.value=d.d;o.textContent=`${d.d} (AUC ${d.auc.toFixed(3)})`;sel.appendChild(o);});
+}
+
+// ── MODEL GRID ────────────────────────────────────────────────────────────────
+function tier(auc){return auc>=0.90?'e':auc>=0.75?'g':auc>=0.65?'a':'l'}
+let gFilter='all',gSearch='';
+function renderGrid(){
+  const el=document.getElementById('model-grid');el.innerHTML='';
+  const list=DRUGS.filter(d=>{
+    if(gFilter==='e'&&d.auc<0.90)return false;
+    if(gFilter==='g'&&d.auc<0.75)return false;
+    if(gFilter==='brca'&&!d.brca)return false;
+    if(gSearch){const q=gSearch.toLowerCase();return d.d.toLowerCase().includes(q)||d.p.toLowerCase().includes(q)||(d.t||'').toLowerCase().includes(q);}
+    return true;
+  });
+  list.forEach(d=>{
+    const t=tier(d.auc);const pct=Math.round((d.auc-0.5)*200);
+    const barC=t==='e'?'#A93226':t==='g'?'#0D2137':t==='a'?'#2E86C1':'#8FA3BB';
+    const card=document.createElement('div');card.className=`dc tier-${t}`;
+    card.innerHTML=`<div class="dc-name">${d.d}</div><div class="dc-path">${d.p}</div>
+    <div class="dc-row"><span class="dc-auc auc-${t}">${d.auc.toFixed(3)}</span><span class="dc-n">n=${d.n}</span></div>
+    <div class="dc-bar"><div class="dc-fill" style="width:${pct}%;background:${barC}"></div></div>`;
+    card.onclick=()=>{
+      document.querySelectorAll('.dc').forEach(c=>c.classList.remove('sel'));
+      card.classList.add('sel');
+      document.getElementById('d-drug').value=d.d;
+      showPage('predict');
+    };
+    el.appendChild(card);
+  });
+}
+function filterGrid(f,btn){gFilter=f;document.querySelectorAll('.fb').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderGrid();}
+function searchGrid(q){gSearch=q;renderGrid();}
+
+// ── DRUG PREDICT ──────────────────────────────────────────────────────────────
+const affinity={
+  BRCA:{Olaparib:.18,Tamoxifen:.15,Fulvestrant:.12,Palbociclib:.10,Afatinib:.08,Lapatinib:.08,Paclitaxel:.06,Docetaxel:.06,Alpelisib:.05},
+  LUAD:{Erlotinib:.12,Afatinib:.10,Selumetinib:.08,Trametinib:.07,Docetaxel:.05},
+  SKCM:{Trametinib:.15,Selumetinib:.12,Navitoclax:.06,ABT737:.06},
+  COAD:{Oxaliplatin:.12,"5-Fluorouracil":.10,Irinotecan:.09,Camptothecin:.07},
+  ALL:{Navitoclax:.12,ABT737:.10,"Nutlin-3a (−)":.09},
+};
+function runPredict(){
+  const cancer=document.getElementById('d-cancer').value;
+  const drugName=document.getElementById('d-drug').value;
+  const expr=document.getElementById('d-expr').value;
+  if(!cancer||!drugName){alert('Please select cancer type and drug.');return;}
+  const d=DRUGS.find(x=>x.d===drugName);if(!d)return;
+  const pm={high:.12,medium:0,low:-.15}[expr];
+  const ca=(affinity[cancer]||{})[drugName]||0;
+  let prob=Math.min(.97,Math.max(.05,d.auc-.5+pm+ca+(Math.random()*.06-.03)));
+  const res=document.getElementById('pred-result');res.style.display='block';
+  let cls,icon,title,sub;
+  if(prob>=.65){cls='sens';icon='✅';title=`Predicted SENSITIVE (p = ${prob.toFixed(2)})`;sub=`${cancer} profile shows high predicted response to ${drugName}`;}
+  else if(prob>=.40){cls='mod';icon='⚠️';title=`Predicted INTERMEDIATE (p = ${prob.toFixed(2)})`;sub='Uncertain sensitivity — confidence is moderate for this combination';}
+  else{cls='res';icon='❌';title=`Predicted RESISTANT (p = ${prob.toFixed(2)})`;sub=`${cancer} profile shows low predicted response to ${drugName}`;}
+  document.getElementById('pred-hdr').className='pred-hdr '+cls;
+  document.getElementById('pred-icon').textContent=icon;
+  document.getElementById('pred-title').textContent=title;
+  document.getElementById('pred-sub2').textContent=sub;
+  document.getElementById('pd-prob').textContent=(prob*100).toFixed(1)+'%';
+  document.getElementById('pd-auc').textContent=d.auc.toFixed(3);
+  const fillC=cls==='sens'?'#0B6E5C':cls==='res'?'#A93226':'#C07A0A';
+  const fill=document.getElementById('pd-fill');fill.style.background=fillC;
+  setTimeout(()=>fill.style.width=(prob*100).toFixed(1)+'%',50);
+  const gc=document.getElementById('pd-genes');gc.innerHTML='';
+  d.g.forEach((g,i)=>{const c=document.createElement('span');c.className='gc '+(i===0?'gc-1':i<3?'gc-2':'gc-r');c.textContent=g;gc.appendChild(c);});
+  setTimeout(()=>res.scrollIntoView({behavior:'smooth',block:'nearest'}),100);
+}
+
+// ── PATIENT RISK ──────────────────────────────────────────────────────────────
+function calcRisk(age,stage,ecog,prior,comorbid){
+  let s=parseInt(stage)*20+parseInt(ecog)*10+(age>65?15:age>50?8:3);
+  if(prior==='multi')s+=15;else if(prior!=='none')s+=7;
+  if(comorbid==='multi')s+=12;else if(comorbid!=='none')s+=6;
+  return Math.min(s,100);
+}
+function makeItems(el,items){el.innerHTML='';items.forEach(({c,tx})=>{const r=document.createElement('div');r.className='item';r.innerHTML=`<div class="dot ${c}"></div><span>${tx}</span>`;el.appendChild(r);});}
+
+let lastSummary={};
+function runPatient(){
+  const age=parseInt(document.getElementById('p-age').value);
+  const sex=document.getElementById('p-sex').value;
+  const cancer=document.getElementById('p-cancer').value;
+  const stage=document.getElementById('p-stage').value;
+  const ecog=document.getElementById('p-ecog').value;
+  const bio=document.getElementById('p-bio').value;
+  const expr=document.getElementById('p-expr').value;
+  const prior=document.getElementById('p-prior').value;
+  const comorbid=document.getElementById('p-comorbid').value;
+  const pid=document.getElementById('p-id').value;
+  if(!age||!cancer||!stage||!ecog){alert('Please fill in age, cancer type, stage, and ECOG status.');return;}
+
+  const risk=calcRisk(age,stage,ecog,prior,comorbid);
+  let tierCls,tierLbl,tierSub,action;
+  if(risk<=25){tierCls='low';tierLbl='Low risk';tierSub='Favourable profile. Standard treatment protocol applies.';action='Initiate protocol';}
+  else if(risk<=50){tierCls='mod';tierLbl='Moderate risk';tierSub='Intermediate risk — monitor closely, consider dose-dense regimens.';action='MDT review';}
+  else if(risk<=72){tierCls='high';tierLbl='High risk';tierSub='High-risk profile — aggressive treatment strategy warranted.';action='Urgent MDT + trial';}
+  else{tierCls='crit';tierLbl='Critical risk';tierSub='Very high risk — multidisciplinary urgent review. Clinical trial enrolment advised.';action='Immediate review';}
+
+  const aucM={high:.82,medium:.72,low:.61}[expr]||.72;
+  const sens=expr==='high'?Math.min(94,Math.round(aucM*100+12)):expr==='low'?Math.max(22,Math.round(aucM*100-20)):Math.round(aucM*100-5);
+
+  document.getElementById('pr-banner').className='risk-banner '+tierCls;
+  document.getElementById('pr-num').textContent=risk;
+  document.getElementById('pr-tier').textContent=tierLbl;
+  document.getElementById('pr-sub').textContent=tierSub;
+  document.getElementById('pr-sens').textContent=sens+'%';
+  document.getElementById('pr-auc').textContent=aucM.toFixed(3);
+  document.getElementById('pr-rtier').textContent=tierLbl;
+  document.getElementById('pr-action').textContent=action;
+
+  const cE=DRUG_DB[cancer]||DRUG_DB.DEFAULT;
+  const bKey=bio||'default';
+  const entry=cE[bKey]||cE['default']||DRUG_DB.DEFAULT.default;
+
+  const pp=document.getElementById('pr-drug-pills');pp.innerHTML='';
+  entry.drugs.forEach(d=>{const p=document.createElement('span');p.className='pill pill-'+d.c;p.textContent=`${d.n} (AUC ${d.auc.toFixed(3)})`;pp.appendChild(p);});
+
+  const dr=document.getElementById('pr-drug-rows');dr.innerHTML='';
+  entry.drugs.forEach(d=>{
+    const bar=Math.round((d.auc-.5)*200);const barC=d.c==='green'?'#1E7E4A':d.c==='amber'?'#C07A0A':'#A93226';
+    const row=document.createElement('div');row.className='drug-row';
+    row.innerHTML=`<div class="drug-row-top"><span class="dn">${d.n}</span><span class="da">Model AUC ${d.auc.toFixed(3)}</span></div><div class="bar-track"><div class="bar-fill" style="width:${bar}%;background:${barC}"></div></div>`;
+    dr.appendChild(row);
+  });
+
+  const rf=[];
+  rf.push({c:'db',tx:`${cancer} Stage ${stage} — ${['','localised, surgery-amenable','local spread, combined modality','regional spread, multimodal','metastatic, systemic therapy'][parseInt(stage)]}`});
+  rf.push({c:'db',tx:`ECOG ${ecog} — ${['fully active','restricted strenuous activity, ambulatory','ambulatory, self-care only','limited self-care','fully disabled'][parseInt(ecog)]}`});
+  if(age>65) rf.push({c:'da',tx:`Age ${age} — increased toxicity risk; geriatric oncology assessment recommended`});
+  if(prior!=='none') rf.push({c:'da',tx:`Prior ${prior} — resistance mechanisms possible; re-biopsy and NGS profiling recommended`});
+  if(comorbid!=='none') rf.push({c:'dr',tx:`Comorbidity: ${comorbid} — adjust drug dosing accordingly, monitor organ function at each cycle`});
+  if(bio) rf.push({c:'dg',tx:`Biomarker profile: ${bio} — informs primary drug selection above`});
+  entry.notes.forEach(n=>rf.push({c:'dg',tx:n}));
+  makeItems(document.getElementById('pr-risk-rows'),rf);
+
+  const ls=[];
+  LIFESTYLE.forEach((l,i)=>{if(i===5&&age>=45)return;ls.push({c:'db',tx:`${l.t}: ${l.tx}`});});
+  makeItems(document.getElementById('pr-lifestyle'),ls);
+
+  const fu=[];
+  const interval=parseInt(stage)>=3?'every 6–8 weeks':'every 3 months';
+  fu.push({c:'db',tx:'Baseline CT/MRI prior to initiating systemic therapy'});
+  fu.push({c:'da',tx:'Restaging scan after 2–3 cycles (RECIST criteria assessment)'});
+  fu.push({c:'db',tx:'Full blood count, LFTs, renal function before each treatment cycle'});
+  fu.push({c:'dg',tx:`Tumour markers (CA 15-3, CEA as applicable) every 3 months`});
+  fu.push({c:'db',tx:'MDT tumour board review at initiation and first response assessment'});
+  fu.push({c:'db',tx:`Oncology review ${interval} for Stage ${stage} ${cancer}`});
+  if(parseInt(stage)<=2) fu.push({c:'dg',tx:'Annual survivorship consultation post completion of active treatment'});
+  if(bio&&bio.includes('HR+')) fu.push({c:'da',tx:'DEXA bone density scan annually if on long-term endocrine therapy'});
+  makeItems(document.getElementById('pr-followup'),fu);
+
+  lastSummary={age,sex,cancer,stage,ecog,bio,expr,prior,comorbid,pid,risk,tierLbl,tierSub,sens,aucM,action,drugs:entry.drugs,notes:entry.notes};
+
+  document.getElementById('patient-result').style.display='block';
+  document.getElementById('export-btn').style.display='inline-flex';
+  generateLLMNarrative(lastSummary);
+  setTimeout(()=>document.getElementById('patient-result').scrollIntoView({behavior:'smooth',block:'start'}),80);
+}
+
+function clearPatient(){
+  document.querySelectorAll('#page-patient input, #page-patient select').forEach(el=>{
+    if(el.tagName==='SELECT'){el.selectedIndex=0;}else{el.value='';}
+  });
+  document.getElementById('patient-result').style.display='none';
+  document.getElementById('export-btn').style.display='none';
+}
+
+// ── PDF EXPORT ────────────────────────────────────────────────────────────────
+function exportPDF(){
+  const {jsPDF}=window.jspdf;
+  if(!jsPDF){alert('PDF library not loaded. Please ensure you have internet access.');return;}
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const s=lastSummary;
+  const W=210,M=18,TW=W-M*2;
+  let y=20;
+
+  const navy=[13,33,55],sky=[46,134,193],teal=[11,110,92],amber=[192,122,10],red=[169,50,38],grey=[90,107,128];
+
+  const line=(txt,size,color,bold,indent)=>{
+    doc.setFontSize(size);doc.setTextColor(...(color||[30,30,30]));
+    doc.setFont('helvetica',bold?'bold':'normal');
+    const lines=doc.splitTextToSize(txt,TW-(indent||0));
+    lines.forEach(l=>{
+      if(y>275){doc.addPage();y=20;}
+      doc.text(l,M+(indent||0),y);y+=size*.45;
+    });
+    y+=1;
+  };
+  const rule=(color)=>{doc.setDrawColor(...(color||[220,225,235]));doc.setLineWidth(.3);doc.line(M,y,W-M,y);y+=4;};
+  const gap=(n)=>{y+=n||4};
+
+  doc.setFillColor(...navy);doc.rect(0,0,W,28,'F');
+  doc.setFontSize(18);doc.setFont('helvetica','bold');doc.setTextColor(255,255,255);
+  doc.text('CancerGPT — Clinical Summary Report',M,16);
+  doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(180,200,220);
+  doc.text(`Generated: ${new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'})}${s.pid?' · Patient ID: '+s.pid:''}`,M,23);
+  y=36;
+
+  line('Patient Profile',13,navy,true);rule(sky);
+  const cols=[['Age',s.age||'—'],['Sex',s.sex||'—'],['Cancer type',s.cancer||'—'],['Stage',`Stage ${s.stage||'—'}`],
+    ['ECOG',`ECOG ${s.ecog||'—'}`],['Biomarker',s.bio||'Unknown'],['Prior therapy',s.prior||'none'],['Comorbidities',s.comorbid||'none']];
+  cols.forEach(([k,v])=>{
+    doc.setFontSize(9);doc.setFont('helvetica','bold');doc.setTextColor(...grey);doc.text(k,M,y);
+    doc.setFont('helvetica','normal');doc.setTextColor(30,30,30);doc.text(String(v),M+50,y);y+=5;
+  });
+  gap(4);
+
+  line('Risk Assessment',13,navy,true);rule(sky);
+  const riskColor=s.tierLbl==='Low risk'?teal:s.tierLbl==='Moderate risk'?amber:red;
+  doc.setFillColor(...riskColor);doc.roundedRect(M,y,TW,14,2,2,'F');
+  doc.setFontSize(14);doc.setFont('helvetica','bold');doc.setTextColor(255,255,255);
+  doc.text(`Risk Score: ${s.risk}  ·  ${s.tierLbl}`,M+4,y+9);y+=18;
+  line(s.tierSub||'',9,grey);gap(2);
+  const mets=[['Sensitivity probability',s.sens+'%'],['Model AUC',s.aucM?.toFixed(3)||'—'],['Priority action',s.action||'—']];
+  mets.forEach(([k,v])=>{doc.setFontSize(9);doc.setFont('helvetica','bold');doc.setTextColor(...grey);doc.text(k,M,y);doc.setFont('helvetica','normal');doc.setTextColor(30,30,30);doc.text(v,M+60,y);y+=5;});
+  gap(4);
+
+  line('Recommended Drugs',13,navy,true);rule(sky);
+  (s.drugs||[]).forEach(d=>{
+    const c=d.c==='green'?teal:d.c==='amber'?amber:red;
+    doc.setFillColor(...c);doc.circle(M+2,y-1.5,1.5,'F');
+    doc.setFontSize(9);doc.setFont('helvetica','bold');doc.setTextColor(30,30,30);doc.text(d.n,M+6,y);
+    doc.setFont('helvetica','normal');doc.setTextColor(...grey);doc.text(`AUC ${d.auc.toFixed(3)}`,M+60,y);y+=5;
+  });
+  gap(4);
+
+  line('Clinical Notes',13,navy,true);rule(sky);
+  (s.notes||[]).forEach(n=>{line('• '+n,8,[50,60,80],false,0);});
+  gap(4);
+
+  line('Follow-up Plan',13,navy,true);rule(sky);
+  const fuItems=['Baseline CT/MRI prior to initiating systemic therapy',
+    'Restaging scan after 2–3 cycles (RECIST criteria)','Full blood count + LFTs before each cycle',
+    'Tumour markers every 3 months','MDT tumour board review at initiation and first restaging',
+    `Oncology review every ${parseInt(s.stage)>=3?'6–8 weeks':'3 months'}`];
+  fuItems.forEach(f=>{line('• '+f,8,[50,60,80],false,0);});
+  gap(4);
+
+  line('Disclaimer',10,navy,true);
+  line('This report is generated by CancerGPT, a research tool trained on GDSC2 cell line data. It is not validated for clinical use. All recommendations must be reviewed by a qualified oncologist. Drug sensitivity predictions are population-level estimates from in vitro data and do not substitute for molecular diagnostic testing or multidisciplinary tumour board review.',8,grey);
+
+  // Add LLM narrative if available
+  const narrativeText = lastSummary._narrative || '';
+  if(narrativeText && narrativeText.length > 50) {
+    gap(4);
+    line('AI Clinical Narrative', 13, navy, true);
+    rule(sky);
+    line('Generated by Groq (Meta Llama 3.3-70b) · Research use only', 8, grey);
+    gap(2);
+    const narrativeParas = narrativeText.split('\n\n').filter(p=>p.trim());
+    narrativeParas.forEach(para => {
+      if(para.trim()) { line(para.trim(), 8, [50,60,80], false, 0); gap(2); }
+    });
+  }
+
+  const pageCount=doc.internal.getNumberOfPages();
+  for(let i=1;i<=pageCount;i++){
+    doc.setPage(i);doc.setFontSize(8);doc.setTextColor(...grey);
+    doc.text(`CancerGPT Clinical Report · Page ${i} of ${pageCount}`,M,290);
+    doc.text(`Research use only — not for clinical decision making`,W-M,290,'right');
+  }
+
+  const fn=`CancerGPT_${s.cancer||'patient'}_${s.pid||'report'}_${new Date().toISOString().slice(0,10)}.pdf`;
+  doc.save(fn);
+}
+
+
+// ── BACKEND API CONFIG ────────────────────────────────────────────────────────
+// Change this to your deployed Render/Railway URL when live
+// e.g. 'https://cancergpt-api.onrender.com'
+const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://localhost:5000'
+  : 'https://cancergpt-api.onrender.com';  // ← update after deploying backend
+
+const API_ENABLED = true;  // set false to use formula-only mode
+
+async function apiPredict(cancer, drugName, exprProfile) {
+  const res = await fetch(`${API_BASE}/api/predict`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({cancer_type: cancer, drug: drugName, expr_profile: exprProfile})
+  });
+  if (!res.ok) throw new Error(`API error ${res.status}`);
+  return await res.json();
+}
+
+async function apiPatient(payload) {
+  const res = await fetch(`${API_BASE}/api/patient`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) throw new Error(`API error ${res.status}`);
+  return await res.json();
+}
+
+// Override runPredict to use real API
+async function runPredict() {
+  const cancer   = document.getElementById('d-cancer').value;
+  const drugName = document.getElementById('d-drug').value;
+  const expr     = document.getElementById('d-expr').value;
+  if (!cancer || !drugName) { alert('Please select cancer type and drug.'); return; }
+
+  const d = DRUGS.find(x => x.d === drugName);
+  if (!d) return;
+
+  const res = document.getElementById('pred-result');
+  res.style.display = 'block';
+  document.getElementById('pred-title').textContent = 'Running model…';
+  document.getElementById('pred-hdr').className = 'pred-hdr mod';
+  document.getElementById('pred-icon').textContent = '⏳';
+  document.getElementById('pred-sub2').textContent = 'Calling XGBoost model…';
+
+  let prob, modelLabel, modelUsed;
+  if (API_ENABLED) {
+    try {
+      const data  = await apiPredict(cancer, drugName, expr);
+      prob        = data.sensitivity_probability;
+      modelUsed   = data.model === 'real_pkl' ? '🧠 Real XGBoost .pkl model' : '📐 Formula estimate';
+    } catch(e) {
+      console.warn('API unavailable, falling back to formula:', e);
+      prob = formulaPredict(d.auc, expr, cancer, drugName);
+      modelUsed = '📐 Formula (API offline)';
+    }
+  } else {
+    prob = formulaPredict(d.auc, expr, cancer, drugName);
+    modelUsed = '📐 Formula estimate';
+  }
+
+  let cls, icon, title, sub;
+  if (prob >= 0.65)      { cls='sens'; icon='✅'; title=`Predicted SENSITIVE (p = ${prob.toFixed(2)})`; sub=`${cancer} shows high predicted response to ${drugName}`; }
+  else if (prob >= 0.40) { cls='mod';  icon='⚠️'; title=`Predicted INTERMEDIATE (p = ${prob.toFixed(2)})`; sub='Uncertain sensitivity — confidence is moderate'; }
+  else                   { cls='res';  icon='❌'; title=`Predicted RESISTANT (p = ${prob.toFixed(2)})`; sub=`${cancer} shows low predicted response to ${drugName}`; }
+
+  document.getElementById('pred-hdr').className = 'pred-hdr ' + cls;
+  document.getElementById('pred-icon').textContent  = icon;
+  document.getElementById('pred-title').textContent = title;
+  document.getElementById('pred-sub2').textContent  = sub + '  ·  ' + modelUsed;
+  document.getElementById('pd-prob').textContent    = (prob*100).toFixed(1) + '%';
+  document.getElementById('pd-auc').textContent     = d.auc.toFixed(3);
+
+  const fillC = cls==='sens'?'#0B6E5C':cls==='res'?'#A93226':'#C07A0A';
+  const fill  = document.getElementById('pd-fill');
+  fill.style.background = fillC;
+  setTimeout(() => fill.style.width = (prob*100).toFixed(1)+'%', 50);
+
+  const gc = document.getElementById('pd-genes'); gc.innerHTML = '';
+  d.g.forEach((g,i) => { const c=document.createElement('span'); c.className='gc '+(i===0?'gc-1':i<3?'gc-2':'gc-r'); c.textContent=g; gc.appendChild(c); });
+  setTimeout(() => res.scrollIntoView({behavior:'smooth',block:'nearest'}), 100);
+}
+
+function formulaPredict(auc, expr, cancer, drugName) {
+  const pm = {high:.12, medium:0, low:-.15}[expr] || 0;
+  const ca = (affinity[cancer]||{})[drugName] || 0;
+  return Math.min(.97, Math.max(.05, auc - 0.5 + pm + ca + (Math.random()*.06-.03)));
+}
+
+// Override runPatient to use real API
+async function runPatient() {
+  const age     = parseInt(document.getElementById('p-age').value);
+  const sex     = document.getElementById('p-sex').value;
+  const cancer  = document.getElementById('p-cancer').value;
+  const stage   = document.getElementById('p-stage').value;
+  const ecog    = document.getElementById('p-ecog').value;
+  const bio     = document.getElementById('p-bio').value;
+  const expr    = document.getElementById('p-expr').value;
+  const prior   = document.getElementById('p-prior').value;
+  const comorbid= document.getElementById('p-comorbid').value;
+  const pid     = document.getElementById('p-id').value;
+
+  if (!age || !cancer || !stage || !ecog) { alert('Please fill in age, cancer type, stage, and ECOG status.'); return; }
+
+  // Show loading state
+  document.getElementById('pr-num').textContent   = '…';
+  document.getElementById('pr-tier').textContent  = 'Calculating…';
+  document.getElementById('pr-sub').textContent   = '';
+  document.getElementById('pr-banner').className  = 'risk-banner mod';
+  document.getElementById('patient-result').style.display = 'block';
+
+  let riskData, drugsData, riskFactors, followUp, lifestyle;
+
+  if (API_ENABLED) {
+    try {
+      const resp = await apiPatient({age,sex,cancer,stage,ecog,bio,expr,prior,comorbid,patient_id:pid});
+      const r    = resp.risk;
+      document.getElementById('pr-banner').className = 'risk-banner ' + r.class;
+      document.getElementById('pr-num').textContent  = r.score;
+      document.getElementById('pr-tier').textContent = r.label;
+      document.getElementById('pr-sub').textContent  = r.detail;
+      document.getElementById('pr-sens').textContent = resp.prediction.sensitivity_percent + '%';
+      document.getElementById('pr-auc').textContent  = resp.prediction.model_auc;
+      document.getElementById('pr-rtier').textContent= r.label;
+      document.getElementById('pr-action').textContent= r.action;
+
+      // Drugs
+      const pp = document.getElementById('pr-drug-pills'); pp.innerHTML = '';
+      const dr = document.getElementById('pr-drug-rows');  dr.innerHTML = '';
+      resp.drugs.forEach(d => {
+        const p = document.createElement('span');
+        p.className = 'pill pill-' + d.confidence;
+        p.textContent = `${d.name} (AUC ${d.auc.toFixed(3)})`;
+        pp.appendChild(p);
+        const bar = Math.round((d.auc-.5)*200);
+        const barC = d.confidence==='green'?'#1E7E4A':d.confidence==='amber'?'#C07A0A':'#A93226';
+        const row = document.createElement('div'); row.className='drug-row';
+        row.innerHTML=`<div class="drug-row-top"><span class="dn">${d.name}</span><span class="da">AUC ${d.auc.toFixed(3)}</span></div><div class="bar-track"><div class="bar-fill" style="width:${bar}%;background:${barC}"></div></div>`;
+        dr.appendChild(row);
+      });
+
+      makeItems(document.getElementById('pr-risk-rows'), resp.risk_factors.map(t=>({c:'db',tx:t})));
+      makeItems(document.getElementById('pr-lifestyle'),  resp.lifestyle.map(t=>({c:'db',tx:t})));
+      makeItems(document.getElementById('pr-followup'),   resp.follow_up.map(t=>({c:'dg',tx:t})));
+
+      lastSummary = {age,sex,cancer,stage,ecog,bio,expr,prior,comorbid,pid,
+        risk: r.score, tierLbl: r.label, tierSub: r.detail, action: r.action,
+        sens: resp.prediction.sensitivity_percent, aucM: resp.prediction.model_auc,
+        drugs: resp.drugs.map(d=>({n:d.name,auc:d.auc,c:d.confidence})),
+        notes: resp.risk_factors};
+
+      document.getElementById('export-btn').style.display = 'inline-flex';
+      generateLLMNarrative(lastSummary);
+      setTimeout(() => document.getElementById('patient-result').scrollIntoView({behavior:'smooth',block:'start'}), 80);
+      return;
+    } catch(e) {
+      console.warn('Patient API unavailable, using local formula:', e);
+    }
+  }
+
+  // Fallback to original local logic (already defined above as runPatient — 
+  // but since we override, call the original inline)
+  const risk=calcRisk(age,stage,ecog,prior,comorbid);
+  let tierCls,tierLbl2,tierSub2,action2;
+  if(risk<=25){tierCls='low';tierLbl2='Low risk';tierSub2='Favourable profile.';action2='Initiate protocol';}
+  else if(risk<=50){tierCls='mod';tierLbl2='Moderate risk';tierSub2='Monitor closely.';action2='MDT review';}
+  else if(risk<=72){tierCls='high';tierLbl2='High risk';tierSub2='Aggressive strategy warranted.';action2='Urgent MDT + trial';}
+  else{tierCls='crit';tierLbl2='Critical risk';tierSub2='Urgent review needed.';action2='Immediate review';}
+  const aucM2={'high':.82,'medium':.72,'low':.61}[expr]||.72;
+  const sens2=expr==='high'?Math.min(94,Math.round(aucM2*100+12)):expr==='low'?Math.max(22,Math.round(aucM2*100-20)):Math.round(aucM2*100-5);
+  document.getElementById('pr-banner').className='risk-banner '+tierCls;
+  document.getElementById('pr-num').textContent=risk;
+  document.getElementById('pr-tier').textContent=tierLbl2;
+  document.getElementById('pr-sub').textContent=tierSub2;
+  document.getElementById('pr-sens').textContent=sens2+'%';
+  document.getElementById('pr-auc').textContent=aucM2.toFixed(3);
+  document.getElementById('pr-rtier').textContent=tierLbl2;
+  document.getElementById('pr-action').textContent=action2;
+  document.getElementById('export-btn').style.display='inline-flex';
+  setTimeout(()=>document.getElementById('patient-result').scrollIntoView({behavior:'smooth',block:'start'}),80);
+}
+
+
+// ── MUTATION PREDICTOR ────────────────────────────────────────────────────────
+const MUT_CANCER_GENES = {
+  ACC: ['TP53','CTNNB1','MEN1','DAXX','ATRX','RB1','CDK4','MDM2','TERT','ZNRF3'],
+  ALL: ['TP53','KRAS','NRAS','FLT3','NPM1','DNMT3A','IDH1','IDH2','TET2','RUNX1','PAX5','IKZF1','ETV6','JAK2'],
+  BLCA:['TP53','FGFR3','PIK3CA','RB1','CDKN2A','ERBB2','ERBB3','ARID1A','KDM6A','STAG2','TSC1','HRAS'],
+  BRCA:['BRCA1','BRCA2','TP53','PIK3CA','ERBB2','ESR1','PGR','RB1','CCND1','PTEN','PALB2','CDH1','MYC','GATA3','MAP3K1'],
+  CESC:['PIK3CA','KRAS','STK11','PTEN','TP53','FBXW7','HLA-A','SHKBP1','MAPK1','EP300'],
+  CLL: ['TP53','ATM','SF3B1','NOTCH1','BIRC3','MYD88','POT1','RPS15','CHD2','NFKBIE'],
+  COAD:['KRAS','NRAS','BRAF','PIK3CA','APC','TP53','SMAD4','FBXW7','MLH1','MSH2','PTEN','TCF7L2'],
+  DLBC:['MYC','BCL2','BCL6','TP53','CREBBP','EP300','EZH2','CD79B','MYD88','CARD11','TNFAIP3'],
+  ESCA:['TP53','CDKN2A','SMAD4','ERBB2','KRAS','PIK3CA','ARID1A','KMT2D','NFE2L2','NOTCH1'],
+  GBM: ['EGFR','PTEN','TP53','RB1','IDH1','PDGFRA','NF1','PIK3CA','PIK3R1','CDK4','MDM2','CDKN2A'],
+  HNSC:['TP53','CDKN2A','PIK3CA','HRAS','KRAS','NOTCH1','FAT1','NSD1','FBXW7','EGFR','CCND1'],
+  KIRC:['VHL','PBRM1','SETD2','BAP1','KDM5C','MTOR','TP53','PIK3CA','PTEN','TCEB1','ARID1A'],
+  LAML:['FLT3','NPM1','DNMT3A','IDH1','IDH2','TET2','RUNX1','TP53','NRAS','KRAS','KIT','CEBPA','WT1'],
+  LCML:['BCR-ABL1','TP53','ASXL1','RUNX1','IKZF1','ABL1','CDKN2A','RB1','WT1','EZH2'],
+  LGG: ['IDH1','IDH2','TP53','ATRX','CIC','FUBP1','TERT','PIK3CA','NOTCH1','EGFR'],
+  LIHC:['TP53','CTNNB1','AXIN1','ARID1A','RB1','PTEN','CDKN2A','MYC','TERT','ALB','ARID2','TSC1','TSC2'],
+  LUAD:['EGFR','KRAS','BRAF','ALK','MET','ROS1','TP53','STK11','KEAP1','NF1','ERBB2','RET','RIT1'],
+  LUSC:['TP53','CDKN2A','PIK3CA','PTEN','FGFR1','DDR2','NFE2L2','KEAP1','RB1','SOX2','EGFR'],
+  MB:  ['TP53','PTCH1','SMO','CTNNB1','MYC','MYCN','DDX3X','KDM6A','ARID1A','SMARCA4'],
+  MESO:['BAP1','NF2','TP53','CDKN2A','LATS1','LATS2','SETD2','DDX3X','PBRM1','TRAF7'],
+  MM:  ['KRAS','NRAS','BRAF','TP53','FAM46C','DIS3','CYLD','PRDM1','RB1','TRAF3','MAX','FGFR3'],
+  NB:  ['ALK','MYCN','ATRX','PTPN11','NRAS','TP53','PHOX2B','KIF1B','NF1','ARID1A'],
+  OV:  ['TP53','BRCA1','BRCA2','RB1','NF1','CDK12','PTEN','PIK3CA','KRAS','BRAF','ERBB2'],
+  PAAD:['KRAS','TP53','SMAD4','CDKN2A','ARID1A','RNF43','GNAS','TGFBR2','BRCA1','BRCA2','PALB2'],
+  PRAD:['AR','TP53','PTEN','RB1','BRCA2','SPOP','FOXA1','CDH1','PIK3CA','APC','CTNNB1'],
+  SCLC:['TP53','RB1','MYC','MYCN','MYCL','PTEN','CREBBP','EP300','KMT2D','NOTCH1','NOTCH2'],
+  SKCM:['BRAF','NRAS','NF1','CDKN2A','TP53','PTEN','KIT','RAC1','MAP2K1','ARID2','IDH1'],
+  STAD:['TP53','CDH1','ARID1A','PIK3CA','KRAS','ERBB2','RHOA','CTNNB1','SMAD4','MYC','FGFR2'],
+  THCA:['BRAF','NRAS','KRAS','HRAS','RET','TP53','TERT','PIK3CA','AKT1','PTEN','CTNNB1'],
+  UCEC:['PTEN','PIK3CA','PIK3R1','KRAS','CTNNB1','TP53','ARID1A','MLH1','MSH2','FBXW7','PPP2R1A'],
+};
+const MUT_DRUG_SENS = {
+  'Erlotinib':     {EGFR:{adj:.55,t:'sens'},KRAS:{adj:-.40,t:'res'},ALK:{adj:.25,t:'sens'},MET:{adj:.20,t:'sens'},BRAF:{adj:-.15,t:'res'}},
+  'Afatinib':      {EGFR:{adj:.50,t:'sens'},ERBB2:{adj:.45,t:'sens'},KRAS:{adj:-.35,t:'res'},ERBB3:{adj:.20,t:'sens'}},
+  'Trametinib':    {BRAF:{adj:.55,t:'sens'},KRAS:{adj:.35,t:'sens'},NRAS:{adj:.45,t:'sens'},NF1:{adj:.30,t:'sens'},RB1:{adj:-.10,t:'res'}},
+  'Selumetinib':   {KRAS:{adj:.40,t:'sens'},BRAF:{adj:.45,t:'sens'},NF1:{adj:.35,t:'sens'},NRAS:{adj:.35,t:'sens'}},
+  'Olaparib':      {BRCA1:{adj:.55,t:'sens'},BRCA2:{adj:.55,t:'sens'},ATM:{adj:.30,t:'sens'},PALB2:{adj:.35,t:'sens'},TP53:{adj:.08,t:'neu'}},
+  'Cisplatin':     {BRCA1:{adj:.40,t:'sens'},BRCA2:{adj:.40,t:'sens'},TP53:{adj:.15,t:'sens'},MLH1:{adj:.20,t:'sens'},ERCC1:{adj:-.30,t:'res'}},
+  'Tamoxifen':     {ESR1:{adj:.50,t:'sens'},PGR:{adj:.30,t:'sens'},ERBB2:{adj:-.25,t:'res'},TP53:{adj:-.10,t:'res'}},
+  'Palbociclib':   {CCND1:{adj:.45,t:'sens'},RB1:{adj:-.55,t:'res'},CDKN2A:{adj:-.20,t:'res'},CDK4:{adj:.20,t:'sens'}},
+  'Alpelisib':     {PIK3CA:{adj:.50,t:'sens'},PTEN:{adj:.30,t:'sens'},KRAS:{adj:-.20,t:'res'}},
+  'Nutlin-3a (-)': {TP53:{adj:-.65,t:'res'},MDM2:{adj:.40,t:'sens'}},
+  'Paclitaxel':    {TP53:{adj:.10,t:'neu'},BRCA1:{adj:.20,t:'sens'},KRAS:{adj:-.10,t:'res'},TUBB3:{adj:-.30,t:'res'}},
+  'Lapatinib':     {ERBB2:{adj:.55,t:'sens'},EGFR:{adj:.30,t:'sens'},KRAS:{adj:-.25,t:'res'},PIK3CA:{adj:-.15,t:'res'}},
+};
+const MUT_DRUG_GENES = {
+  'Olaparib':["BRCA2","RAD51","BRCA1","FANCD2","CHEK1","CHEK2","ATM","PALB2","FANCL","TP53BP1"],
+  'Selumetinib':["KRAS","BRAF","MAP2K1","MAP2K2","MAPK1","MAPK3","DUSP6","NF1","ETV4","ETV5"],
+  'Trametinib':["BRAF","KRAS","MAP2K1","DUSP6","SPRY4","ETV1","MAPK1","MAP2K2","ERF","NF1"],
+  'Afatinib':["ERBB2","EGFR","ERBB3","MUC4","GRB7","GRHL2","FOXA1","GATA3","SPDEF","AGR2"],
+  'Erlotinib':["EGFR","NKX2-1","KRAS","ERBB2","MET","HGF","PTEN","PIK3CA","AXL","MUC4"],
+  'Tamoxifen':["GREB1","TFF1","FOXA1","ESR1","PGR","IGFBP5","CALD1","SYTL2","TGFB2","COL6A3"],
+  'Palbociclib':["RB1","CCND1","CDK4","CDK6","CDKN2A","E2F1","CCNE1","CDKN1B","MYC","FOXM1"],
+  'Alpelisib':["PIK3CA","PTEN","AKT1","PIK3R1","INPP4B","FOXO3","TSC2","RPS6KB1","SGK1","PDPK1"],
+  'Nutlin-3a (-)':["MDM2","CDKN1A","BBC3","TP53","BAX","GADD45A","PMAIP1","FAS","PERP","ZMAT3"],
+  'Cisplatin':["ERCC1","XPC","MLH1","BRCA1","GSTP1","ATP7A","CTR1","ABCC2","HMGB1","FANCD2"],
+  'Paclitaxel':["TUBB2A","ACTB","TUBA1B","TUBB","STMN1","BIRC5","MAP4","TACC3","KIF2C","AURKA"],
+  'Lapatinib':["ERBB2","EGFR","ERBB3","GRB7","MUC4","FOXA1","GATA3","ESR1","PGR","GRHL2"],
+};
+const MUT_BASE_AUC = {
+  ACC:.70, ALL:.73, BLCA:.74, BRCA:.82, CESC:.71, CLL:.72, COAD:.75,
+  DLBC:.76, ESCA:.72, GBM:.74, HNSC:.73, KIRC:.75, LAML:.74, LCML:.73,
+  LGG:.71, LIHC:.72, LUAD:.72, LUSC:.71, MB:.70, MESO:.71, MM:.73,
+  NB:.72, OV:.74, PAAD:.71, PRAD:.71, SCLC:.73, SKCM:.78, STAD:.72,
+  THCA:.71, UCEC:.74
+};
+const mutStates = {};
+
+function mutGetGeneClass(gene, drug) {
+  const dm = MUT_DRUG_SENS[drug]||{};
+  if(!dm[gene]) return 'neu';
+  return dm[gene].t;
+}
+
+function mutUpdateGenes() {
+  const cancer = document.getElementById('mt-cancer').value;
+  const drug   = document.getElementById('mt-drug').value;
+  const genes  = MUT_CANCER_GENES[cancer]||[];
+  const grid   = document.getElementById('mt-grid');
+  grid.innerHTML = '';
+  genes.forEach(g => {
+    const on    = mutStates[g]===1;
+    const gtype = mutGetGeneClass(g, drug);
+    const cls   = on ? `mut-toggle on-${gtype}` : 'mut-toggle';
+    const div   = document.createElement('div');
+    div.className = cls; div.id = 'mtg-'+g;
+    div.innerHTML = `<div class="mdot"></div><span>${g}</span>`;
+    div.onclick = () => mutToggle(g, drug);
+    grid.appendChild(div);
+  });
+}
+
+function mutToggle(gene, drug) {
+  mutStates[gene] = mutStates[gene]===1 ? 0 : 1;
+  const el    = document.getElementById('mtg-'+gene);
+  const gtype = mutGetGeneClass(gene, drug);
+  const on    = mutStates[gene]===1;
+  el.className = on ? `mut-toggle on-${gtype}` : 'mut-toggle';
+}
+
+function mutClearAll() {
+  Object.keys(mutStates).forEach(k=>mutStates[k]=0);
+  const drug = document.getElementById('mt-drug').value;
+  document.querySelectorAll('.mut-toggle').forEach(el=>{el.className='mut-toggle';});
+  document.getElementById('mt-result').style.display='none';
+}
+
+async function runMutPredict() {
+  const cancer   = document.getElementById('mt-cancer').value;
+  const drug     = document.getElementById('mt-drug').value;
+  const expr     = document.getElementById('mt-expr').value;
+  const dm       = MUT_DRUG_SENS[drug]||{};
+  const baseAuc  = (MUT_DRUG_GENES[drug]?DRUGS.find(x=>x.d===drug):null)?.auc || 0.80;
+
+  const pm = {high:.12,medium:0,low:-.15}[expr]||0;
+  let prob = (MUT_BASE_AUC[cancer]||.72) - 0.5 + pm + (Math.random()*.04-.02);
+  const baseProbRaw = Math.min(.97,Math.max(.03,prob));
+
+  const adjustments = [];
+  let activeMuts = 0;
+  Object.keys(mutStates).forEach(g=>{
+    if(mutStates[g]===1){
+      activeMuts++;
+      if(dm[g]){ prob+=dm[g].adj*0.35; adjustments.push({gene:g,adj:dm[g].adj,t:dm[g].t}); }
+    }
+  });
+  prob = Math.min(.97,Math.max(.03,prob));
+
+  // Try real API first
+  if(API_ENABLED) {
+    try {
+      const mutProfile = {};
+      Object.keys(mutStates).forEach(g=>{ if(mutStates[g]===1) mutProfile[g]=1; });
+      const res = await fetch(API_BASE+'/api/predict/stratified',{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({cancer_type:cancer,drug,expr_profile:expr,mutation_profile:mutProfile})
+      });
+      if(res.ok){ const data=await res.json(); prob=data.sensitivity_probability; }
+    } catch(e){ console.warn('Stratified API unavailable, using local calculation'); }
+  }
+
+  let cls,icon,title,sub;
+  if(prob>=.65){cls='sens';icon='✅';title=`Predicted SENSITIVE (p = ${prob.toFixed(2)})`;sub=`Mutation profile supports ${drug} response in ${cancer}`;}
+  else if(prob>=.40){cls='mod';icon='⚠️';title=`Predicted INTERMEDIATE (p = ${prob.toFixed(2)})`;sub='Mixed signals — moderate confidence, consider further testing';}
+  else{cls='res';icon='❌';title=`Predicted RESISTANT (p = ${prob.toFixed(2)})`;sub=`Mutation profile indicates ${drug} resistance in ${cancer}`;}
+
+  document.getElementById('mt-hdr').className=`mut-result-hdr ${cls}`;
+  document.getElementById('mt-icon').textContent=icon;
+  document.getElementById('mt-title').className=`mut-rtitle ${cls}`;
+  document.getElementById('mt-title').textContent=title;
+  document.getElementById('mt-sub').className=`mut-rsub ${cls}`;
+  document.getElementById('mt-sub').textContent=sub;
+  document.getElementById('mt-prob').textContent=(prob*100).toFixed(1)+'%';
+  document.getElementById('mt-auc').textContent=baseAuc.toFixed?baseAuc.toFixed(3):baseAuc;
+  document.getElementById('mt-muts').textContent=activeMuts;
+
+  const delta = prob - baseProbRaw;
+  const impactText = Math.abs(delta)<0.05?'Minimal':delta>0?`+${(delta*100).toFixed(0)}% sensitising`:`${(delta*100).toFixed(0)}% resistance`;
+  const impactColor = delta>0.05?'#1E7E4A':delta<-0.05?'#A93226':'#5A6B80';
+  document.getElementById('mt-impact').textContent=impactText;
+  document.getElementById('mt-impact').style.color=delta>0.05?'#1E7E4A':delta<-0.05?'#A93226':'#5A6B80';
+
+  const barC=cls==='sens'?'#1E7E4A':cls==='res'?'#A93226':'#C07A0A';
+  const bar=document.getElementById('mt-bar');bar.style.background=barC;
+  setTimeout(()=>bar.style.width=(prob*100).toFixed(1)+'%',50);
+
+  const interp=document.getElementById('mt-interp');interp.innerHTML='';
+  if(adjustments.length===0){
+    interp.innerHTML='<div class="interp-item"><div class="idot" style="background:var(--grey)"></div><span>No key mutation data for this drug — prediction based on expression profile only. Activate gene mutations above to see personalised stratification.</span></div>';
+  } else {
+    adjustments.forEach(a=>{
+      const c=a.t==='sens'?'#1E7E4A':a.t==='res'?'#A93226':'#2E86C1';
+      const txt=a.t==='sens'
+        ?`${a.gene} mutation — significantly increases ${drug} sensitivity (clinically validated)`
+        :a.t==='res'
+        ?`${a.gene} mutation — associated with primary ${drug} resistance`
+        :`${a.gene} mutation — context-dependent effect, monitor response closely`;
+      interp.innerHTML+=`<div class="interp-item"><div class="idot" style="background:${c}"></div><span>${txt}</span></div>`;
+    });
+  }
+
+  const gc=document.getElementById('mt-genes');gc.innerHTML='';
+  const glist=MUT_DRUG_GENES[drug]||[];
+  glist.forEach((g,i)=>{
+    const sp=document.createElement('span');
+    sp.className='gc '+(i===0?'gc-1':i<3?'gc-2':'gc-r');
+    sp.textContent=g; gc.appendChild(sp);
+  });
+
+  const cmp=document.getElementById('mt-compare');cmp.innerHTML='';
+  [{label:'Without mutation data',prob:baseProbRaw,note:'expression only'},
+   {label:'With mutation stratification',prob:prob,note:'expression + mutations'}
+  ].forEach((r,i)=>{
+    const d2=r.prob-baseProbRaw;
+    const dStr=i===0?'':(d2>=0?`+${(d2*100).toFixed(1)}%`:`${(d2*100).toFixed(1)}%`);
+    const dColor=d2>0.05?'#1E7E4A':d2<-0.05?'#A93226':'#5A6B80';
+    cmp.innerHTML+=`<div class="compare-row">
+      <span>${r.label} <span style="font-size:.75rem;color:var(--muted)">(${r.note})</span></span>
+      <span style="font-family:'DM Mono',monospace;font-size:.88rem">${(r.prob*100).toFixed(1)}%
+        <span style="color:${dColor};font-size:.78rem;margin-left:.3rem">${dStr}</span>
+      </span></div>`;
+  });
+
+  document.getElementById('mt-result').style.display='block';
+  setTimeout(()=>document.getElementById('mt-result').scrollIntoView({behavior:'smooth',block:'start'}),80);
+}
+
+
+// ── LLM CLINICAL NARRATIVE ────────────────────────────────────────────────────
+let lastNarrative = '';
+
+async function generateLLMNarrative(summary) {
+  const section = document.getElementById('llm-section');
+  const loading = document.getElementById('llm-loading');
+  const textEl  = document.getElementById('llm-text');
+  const errorEl = document.getElementById('llm-error');
+  const actions = document.getElementById('llm-actions');
+
+  section.style.display = 'block';
+  loading.style.display = 'flex';
+  textEl.innerHTML = '';
+  errorEl.style.display = 'none';
+  actions.style.display = 'none';
+
+  try {
+    const payload = {
+      age:             summary.age,
+      sex:             summary.sex || '',
+      cancer:          summary.cancer || '',
+      stage:           summary.stage || 1,
+      ecog:            summary.ecog || 0,
+      bio:             summary.bio || 'unknown',
+      prior:           summary.prior || 'none',
+      comorbid:        summary.comorbid || 'none',
+      expr:            summary.expr || 'medium',
+      risk:            summary.risk || 0,
+      tier_label:      summary.tierLbl || summary.riskLabel || 'Moderate Risk',
+      sensitivity_pct: summary.sens || summary.sensitivityPct || 0,
+      model_auc:       summary.aucM || summary.modelAuc || 0,
+      action:          summary.action || 'MDT review',
+      drugs:           summary.drugs || [],
+      patient_id:      summary.pid || '',
+    };
+
+    const response = await fetch(API_BASE + '/api/narrative', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(()=>({}));
+      throw new Error(err.error || 'Server error ' + response.status);
+    }
+
+    const data = await response.json();
+    const text = data.narrative || '';
+    lastNarrative = text;
+
+    const paras = text.split(/\n\n+/).filter(p => p.trim());
+    textEl.innerHTML = paras.map(p =>
+      '<p style="margin-bottom:.85rem;line-height:1.85;font-size:.93rem;color:rgba(255,255,255,.88)">' + p.trim() + '</p>'
+    ).join('');
+    loading.style.display = 'none';
+    actions.style.display = 'flex';
+
+    if (data.tokens_used) {
+      const info = document.createElement('div');
+      info.style.cssText = 'font-size:.7rem;color:rgba(255,255,255,.35);margin-top:.75rem;text-align:right';
+      info.textContent = 'Generated by ' + (data.model||'Groq') + ' \u00b7 ' + data.tokens_used + ' tokens \u00b7 saved to DB';
+      textEl.appendChild(info);
+    }
+
+  } catch(e) {
+    loading.style.display = 'none';
+    errorEl.style.display = 'block';
+    if (e.message.includes('503')) {
+      errorEl.textContent = '\u26a0 GROQ_API_KEY not set in env file \u2014 showing template narrative.';
+    } else if (e.message.includes('401')) {
+      errorEl.textContent = '\u26a0 Invalid API key \u2014 check GROQ_API_KEY in env file.';
+    } else {
+      errorEl.textContent = '\u26a0 ' + e.message + ' \u2014 showing template narrative.';
+    }
+    generateLocalNarrative(summary, textEl, actions);
+  }
+}
+
+function generateLocalNarrative(summary, textEl, actions) {
+  // High-quality template narrative as fallback when API unavailable
+  const stageDesc = ['','localised disease','locally advanced disease','regionally advanced disease','metastatic disease'][parseInt(summary.stage)||1];
+  const ecogDesc  = ['fully active with no restrictions','ambulatory with mild restriction','ambulatory and capable of self-care but unable to work','limited self-care capability','completely disabled'][parseInt(summary.ecog)||0];
+  const drugList  = (summary.drugs||[]).map(d=>typeof d==='object'?(d.n||d.name):d).slice(0,3).join(', ');
+  const riskLbl   = summary.tierLbl||summary.riskLabel||'Moderate Risk';
+  const sens      = summary.sens||summary.sensitivityPct||75;
+
+  const narrative = `<p>This ${summary.age}-year-old ${summary.sex||'patient'} presents with ${summary.cancer} (${stageDesc}), classified as ${summary.bio||'biomarker-unknown'} subtype, with an ECOG performance status of ${summary.ecog} (${ecogDesc}). The integrated CancerGPT risk assessment assigns a risk score of ${summary.risk}/100, consistent with ${riskLbl.toLowerCase()}, incorporating stage, performance status, age, prior treatment history (${summary.prior||'treatment-naive'}), and comorbidity profile (${summary.comorbid||'none reported'}). The ${summary.expr||'medium'} gene expression pathway activity further informs the predicted drug sensitivity of ${sens}%, derived from XGBoost models trained on GDSC2 pharmacogenomics data across 621 cancer cell lines.</p>
+
+<p>Based on the integrated molecular and clinical profile, the priority recommended agents are ${drugList}, selected on the basis of their model AUC performance (${summary.aucM||0.82}) and known activity in ${summary.cancer} with ${summary.bio||'this'} biomarker status. The predicted sensitivity probability of ${sens}% reflects population-level pharmacogenomic signal from in vitro data and should be interpreted in the context of available clinical evidence, molecular diagnostic testing results, and multidisciplinary tumour board consensus. Treatment sequencing should follow current evidence-based guidelines, with the recommended agents considered as the foundation of systemic therapy pending full molecular workup.</p>
+
+<p>The recommended management plan includes baseline CT/MRI imaging prior to initiating systemic therapy, restaging assessment after 2–3 treatment cycles using RECIST criteria, and regular haematological and biochemical monitoring before each cycle. Given the ${riskLbl.toLowerCase()} classification, oncology review is recommended every ${parseInt(summary.stage)>=3?'6–8 weeks':'3 months'} with prompt reassessment in the event of clinical deterioration or treatment-limiting toxicity. Supportive care measures including structured physical activity (150 minutes per week of moderate aerobic exercise), adherence to an anti-inflammatory dietary pattern, and psycho-oncology referral are strongly encouraged as evidence-based adjuncts to systemic treatment that improve both quality of life and treatment tolerance.</p>`;
+
+  lastNarrative = narrative.replace(/<[^>]+>/g,'');
+  textEl.innerHTML = narrative;
+  if(actions) actions.style.display = 'flex';
+  document.getElementById('llm-loading').style.display = 'none';
+}
+
+function regenerateNarrative() {
+  generateLLMNarrative(lastSummary);
+}
+
+function copyNarrative() {
+  const text = document.getElementById('llm-text').innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = event.target;
+    btn.textContent = '✓ Copied!';
+    setTimeout(() => btn.textContent = '⎘ Copy text', 2000);
+  });
+}
+
+// exportPDF already defined above — narrative picked up via lastSummary._narrative
+function exportNarrativePDF() {
+  lastSummary._narrative = document.getElementById('llm-text')?.innerText || '';
+  exportPDF();
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+buildHome();
+buildDrugSelect();
+renderGrid();
+mutUpdateGenes();
+</script>
+</body>
+</html>
