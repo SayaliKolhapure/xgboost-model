@@ -25,10 +25,13 @@ RUN pip install --upgrade "anthropic>=0.40.0" "httpx>=0.27.0"
 COPY app.py .
 
 # Copy ML model artifacts (must be in same folder as Dockerfile)
-COPY cancergpt_best_model.pkl .
-COPY cancergpt_probe_cols.pkl .
-COPY cancergpt_gdsc_results.csv .
-COPY cancergpt_gdsc_features.csv .
+COPY xgboost_best_model.pkl .
+COPY xgboost_probe_cols.pkl .
+COPY xgboost_gdsc_results.csv .
+COPY xgboost_gdsc_features.csv .
+COPY xgboost_mutation_model.pkl .
+COPY xgboost_mutation_results.csv .
+COPY xgboost_mutation_features.csv .
 
 # Copy frontend
 COPY index.html .
