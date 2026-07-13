@@ -5,7 +5,7 @@ numpy==1.26.4
 pandas==2.2.2
 scikit-learn==1.8.0
 xgboost==2.0.3
-imbalanced-learn==0.12.3
+imbalanced-learn==0.13.0
 joblib==1.4.2
 sqlalchemy==2.0.30
 psycopg2-binary==2.9.9
