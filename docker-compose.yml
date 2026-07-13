@@ -36,13 +36,13 @@ services:
       db:
         condition: service_healthy   # wait for PostgreSQL to be ready
     volumes:
-      - ./cancergpt_best_model.pkl:/app/cancergpt_best_model.pkl:ro
-      - ./cancergpt_probe_cols.pkl:/app/cancergpt_probe_cols.pkl:ro
-      - ./cancergpt_gdsc_results.csv:/app/cancergpt_gdsc_results.csv:ro
-      - ./cancergpt_gdsc_features.csv:/app/cancergpt_gdsc_features.csv:ro
-      - ./cancergpt_mutation_model.pkl:/app/cancergpt_mutation_model.pkl:ro
-      - ./cancergpt_mutation_results.csv:/app/cancergpt_mutation_results.csv:ro
-      - ./cancergpt_mutation_features.csv:/app/cancergpt_mutation_features.csv:ro
+      - ./xgboost_best_model.pkl:/app/xgboost_best_model.pkl:ro
+      - ./xgboost_probe_cols.pkl:/app/xgboost_probe_cols.pkl:ro
+      - ./xgboost_gdsc_results.csv:/app/xgboost_gdsc_results.csv:ro
+      - ./xgboost_gdsc_features.csv:/app/xgboost_gdsc_features.csv:ro
+      - ./xgboost_mutation_model.pkl:/app/xgboost_mutation_model.pkl:ro
+      - ./xgboost_mutation_results.csv:/app/xgboost_mutation_results.csv:ro
+      - ./xgboost_mutation_features.csv:/app/xgboost_mutation_features.csv:ro
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
       interval: 30s
