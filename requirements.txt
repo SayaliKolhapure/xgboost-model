@@ -3,7 +3,7 @@ flask-cors==4.0.1
 gunicorn==22.0.0
 numpy==1.26.4
 pandas==2.2.2
-scikit-learn==1.5.0
+scikit-learn==1.8.0
 xgboost==2.0.3
 imbalanced-learn==0.12.3
 joblib==1.4.2
