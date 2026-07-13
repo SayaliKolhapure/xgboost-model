@@ -115,10 +115,10 @@ def init_db():
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 print("Loading model artifacts...")
 try:
-    BEST_MODEL  = joblib.load(os.path.join(BASE_DIR, 'cancergpt_best_model.pkl'))
-    PROBE_COLS  = joblib.load(os.path.join(BASE_DIR, 'cancergpt_probe_cols.pkl'))
-    RESULTS_DF  = pd.read_csv(os.path.join(BASE_DIR, 'cancergpt_gdsc_results.csv'))
-    FEATURES_DF = pd.read_csv(os.path.join(BASE_DIR, 'cancergpt_gdsc_features.csv'))
+    BEST_MODEL  = joblib.load(os.path.join(BASE_DIR, 'xgboost_best_model.pkl'))
+    PROBE_COLS  = joblib.load(os.path.join(BASE_DIR, 'xgboost_probe_cols.pkl'))
+    RESULTS_DF  = pd.read_csv(os.path.join(BASE_DIR, 'xgboost_gdsc_results.csv'))
+    FEATURES_DF = pd.read_csv(os.path.join(BASE_DIR, 'xgboost_gdsc_features.csv'))
     MODEL_READY = True
     BEST_DRUG   = RESULTS_DF.sort_values('ROC_AUC', ascending=False).iloc[0]['Drug']
     print(f"  Model ready | Best drug: {BEST_DRUG}")
@@ -130,10 +130,10 @@ except Exception as e:
 
 # ── Load mutation-stratified model ───────────────────────────────────────────
 try:
-    MUT_MODEL      = joblib.load(os.path.join(BASE_DIR, 'cancergpt_mutation_model.pkl'))
-    MUT_RESULTS_DF = pd.read_csv(os.path.join(BASE_DIR, 'cancergpt_mutation_results.csv'))
+    MUT_MODEL      = joblib.load(os.path.join(BASE_DIR, 'xgboost_mutation_model.pkl'))
+    MUT_RESULTS_DF = pd.read_csv(os.path.join(BASE_DIR, 'xgboost_mutation_results.csv'))
     MUT_DRUG_AUC   = dict(zip(MUT_RESULTS_DF['Drug'], MUT_RESULTS_DF['ROC_AUC']))
-    MUT_FEAT_DF    = pd.read_csv(os.path.join(BASE_DIR, 'cancergpt_mutation_features.csv'))
+    MUT_FEAT_DF    = pd.read_csv(os.path.join(BASE_DIR, 'xgboost_mutation_features.csv'))
     MUT_FEATURES   = {}
     for drug, grp in MUT_FEAT_DF.groupby('drug'):
         MUT_FEATURES[drug] = [{'feature':r['feature'],'importance':float(r['importance']),'type':r.get('type','expression')}
