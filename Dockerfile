@@ -19,6 +19,9 @@ COPY xgboost_mutation_model.pkl .
 COPY xgboost_mutation_results.csv .
 COPY xgboost_mutation_features.csv .
 
+# Fix permissions so Flask can read all files
+RUN chmod -R 755 /app
+
 EXPOSE 5000
 
 CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "--timeout", "120", "app:app"]
