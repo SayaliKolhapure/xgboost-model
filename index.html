@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CancerGPT — AI Oncology Assistant</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0D2137;--blue:#1A4C7A;--teal:#0B6E5C;--sky:#2E86C1;
+  --red:#A93226;--amber:#C07A0A;--green:#1E7E4A;--grey:#6C7A8D;
+  --surface:#F4F7FB;--white:#FFFFFF;--border:#DDE4EF;
+  --text:#0D2137;--muted:#5A6B80;--faint:#8FA3BB;
+  --radius:10px;--radius-lg:16px;
+}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Outfit',sans-serif;background:var(--surface);color:var(--text);font-size:15px;line-height:1.6;display:flex;flex-direction:column}
+
+/* ── SIDEBAR ── */
+.sidebar{width:260px;background:var(--navy);display:flex;flex-direction:column;flex-shrink:0;height:100vh;position:fixed;left:0;top:0;z-index:100}
+.sidebar-brand{padding:1.25rem 1.5rem;font-family:'DM Serif Display',serif;color:#fff;font-size:1.3rem;border-bottom:1px solid rgba(255,255,255,.1);cursor:pointer}
+.sidebar-brand span{color:#5BB3F0}
+.sidebar-section{padding:.75rem 1rem .35rem;font-size:.68rem;font-weight:600;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.08em}
+.chip-btn{display:flex;align-items:flex-start;gap:.5rem;padding:.55rem 1rem;margin:.15rem .5rem;border-radius:8px;cursor:pointer;transition:background .15s;color:rgba(255,255,255,.75);font-size:.82rem;line-height:1.45}
+.chip-btn:hover{background:rgba(255,255,255,.08);color:#fff}
+.chip-btn .ci{font-size:.95rem;flex-shrink:0;margin-top:.05rem}
+.sidebar-divider{height:1px;background:rgba(255,255,255,.1);margin:.5rem 1rem}
+.sidebar-stat{padding:.4rem 1.5rem;display:flex;justify-content:space-between;font-size:.78rem;color:rgba(255,255,255,.45)}
+.sidebar-stat span:last-child{font-family:'DM Mono',monospace;color:#5BB3F0}
+.sidebar-bottom{margin-top:auto;padding:1rem;border-top:1px solid rgba(255,255,255,.1)}
+.sidebar-hint{font-size:.72rem;color:rgba(255,255,255,.3);line-height:1.5;text-align:center}
+
+/* ── MAIN AREA ── */
+.main{margin-left:260px;height:100vh;display:flex;flex-direction:column;min-width:0}
+
+/* ── TOPBAR ── */
+.topbar{height:52px;background:var(--white);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 1.5rem;gap:1rem;flex-shrink:0}
+.topbar-title{font-size:.93rem;font-weight:600;color:var(--navy);flex:1}
+.topbar-badge{font-size:.72rem;padding:.2rem .65rem;border-radius:99px;font-weight:500}
+.badge-green{background:#E8F8EE;color:#1E7E4A}
+.badge-amber{background:#FEF6E4;color:#C07A0A}
+.badge-blue{background:#E6F1FB;color:#185FA5}
+.topbar-btn{padding:.3rem .8rem;border:1px solid var(--border);border-radius:var(--radius);font-family:inherit;font-size:.78rem;color:var(--muted);cursor:pointer;background:var(--white);transition:all .15s}
+.topbar-btn:hover{border-color:var(--sky);color:var(--sky)}
+
+/* ── MESSAGES ── */
+.messages{flex:1;overflow-y:auto;padding:1.5rem;display:flex;flex-direction:column;gap:1.25rem;scroll-behavior:smooth}
+.msg-row{display:flex;gap:.85rem;max-width:860px;margin:0 auto;width:100%}
+.msg-row.user{flex-direction:row-reverse}
+.msg-avatar{width:34px;height:34px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:600;margin-top:.1rem}
+.av-bot{background:linear-gradient(135deg,var(--navy),var(--blue));color:#fff}
+.av-user{background:var(--sky);color:#fff}
+.msg-body{flex:1;min-width:0}
+.msg-bubble{padding:.85rem 1.1rem;border-radius:16px;font-size:.92rem;line-height:1.75;white-space:pre-wrap;word-break:break-word}
+.user .msg-bubble{background:var(--navy);color:#fff;border-bottom-right-radius:4px}
+.bot .msg-bubble{background:var(--white);border:1px solid var(--border);color:var(--text);border-bottom-left-radius:4px}
+.msg-time{font-size:.7rem;color:var(--faint);margin-top:.3rem;padding:0 .2rem}
+.user .msg-time{text-align:right}
+
+/* ── RESULT CARDS ── */
+.result-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-top:.75rem;box-shadow:0 2px 10px rgba(13,33,55,.06)}
+.rc-header{padding:.9rem 1.15rem;display:flex;align-items:center;gap:.75rem}
+.rc-header.sens{background:linear-gradient(90deg,#0B6E5C,#0D9478)}
+.rc-header.res{background:linear-gradient(90deg,#8B1A10,#C0392B)}
+.rc-header.mod{background:linear-gradient(90deg,#8B6610,#C07A0A)}
+.rc-header.risk-low{background:linear-gradient(90deg,#1E7E4A,#27AE60)}
+.rc-header.risk-mod{background:linear-gradient(90deg,#C07A0A,#E67E22)}
+.rc-header.risk-high{background:linear-gradient(90deg,#A93226,#C0392B)}
+.rc-header.risk-crit{background:linear-gradient(90deg,#7B241C,#A93226)}
+.rc-icon{font-size:1.6rem}
+.rc-title{color:#fff;font-family:'DM Serif Display',serif;font-size:1.1rem}
+.rc-sub{color:rgba(255,255,255,.75);font-size:.78rem;margin-top:.1rem}
+.rc-body{padding:1rem 1.15rem}
+.rc-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;margin-bottom:.85rem}
+.rc-metric{background:var(--surface);border-radius:8px;padding:.6rem .75rem}
+.rc-metric .mv{font-family:'DM Mono',monospace;font-size:1.2rem;font-weight:500;color:var(--navy)}
+.rc-metric .ml{font-size:.68rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.15rem}
+.rc-bar-wrap{margin-bottom:.75rem}
+.rc-bar-labels{display:flex;justify-content:space-between;font-size:.72rem;color:var(--muted);margin-bottom:.25rem}
+.rc-bar-track{height:6px;background:var(--border);border-radius:99px;overflow:hidden}
+.rc-bar-fill{height:100%;border-radius:99px;transition:width .7s ease}
+.rc-section-lbl{font-size:.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:.75rem 0 .4rem}
+.rc-drug-row{display:flex;justify-content:space-between;align-items:center;padding:.4rem 0;border-bottom:1px solid var(--border);font-size:.85rem}
+.rc-drug-row:last-child{border-bottom:none}
+.rc-drug-name{font-weight:600;color:var(--text)}
+.rc-drug-auc{font-family:'DM Mono',monospace;font-size:.82rem;color:var(--green);font-weight:500}
+.rc-gene-chips{display:flex;flex-wrap:wrap;gap:.3rem}
+.rc-gene{padding:.18rem .6rem;border-radius:99px;font-family:'DM Mono',monospace;font-size:.72rem;font-weight:500}
+.gc-1{background:#0B6E5C;color:#fff}.gc-2{background:#E1F5EE;color:#0B5C4A}.gc-r{background:var(--surface);color:var(--muted)}
+.rc-note-row{display:flex;gap:.5rem;align-items:flex-start;padding:.3rem 0;font-size:.82rem;color:var(--muted);line-height:1.5}
+.rc-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:.35rem}
+.dot-green{background:var(--green)}.dot-amber{background:var(--amber)}.dot-blue{background:var(--sky)}.dot-red{background:var(--red)}
+.mut-adj-row{display:flex;gap:.5rem;align-items:center;padding:.25rem 0;font-size:.82rem}
+.mut-badge{font-size:.7rem;padding:.1rem .5rem;border-radius:99px;font-weight:500}
+.mb-sens{background:#E8F8EE;color:#1E7E4A}.mb-res{background:#FEEDED;color:#A93226}.mb-neu{background:#E6F1FB;color:#185FA5}
+
+/* ── TYPING INDICATOR ── */
+.typing-row{display:flex;gap:.85rem;max-width:860px;margin:0 auto;width:100%}
+.typing-bubble{background:var(--white);border:1px solid var(--border);border-radius:16px;border-bottom-left-radius:4px;padding:.85rem 1.1rem;display:flex;gap:.35rem;align-items:center}
+.typing-bubble span{width:7px;height:7px;border-radius:50%;background:var(--muted);animation:tdot 1.2s infinite}
+.typing-bubble span:nth-child(2){animation-delay:.2s}
+.typing-bubble span:nth-child(3){animation-delay:.4s}
+@keyframes tdot{0%,80%,100%{opacity:.2;transform:scale(.8)}40%{opacity:1;transform:scale(1)}}
+
+/* ── WELCOME ── */
+.welcome{text-align:center;padding:3rem 2rem;max-width:620px;margin:auto}
+.welcome-icon{font-size:3rem;margin-bottom:1rem}
+.welcome h1{font-family:'DM Serif Display',serif;font-size:2rem;color:var(--navy);margin-bottom:.5rem}
+.welcome p{color:var(--muted);font-size:.95rem;margin-bottom:2rem}
+.welcome-chips{display:flex;flex-wrap:wrap;gap:.6rem;justify-content:center}
+.wc{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:.6rem 1rem;font-size:.85rem;cursor:pointer;color:var(--text);transition:all .18s;text-align:left;line-height:1.4}
+.wc:hover{border-color:var(--sky);box-shadow:0 2px 10px rgba(46,134,193,.12);transform:translateY(-1px)}
+.wc strong{display:block;color:var(--navy);font-weight:600;margin-bottom:.1rem}
+
+/* ── INPUT AREA ── */
+.input-area{border-top:1px solid var(--border);background:var(--white);padding:.85rem 1.5rem;flex-shrink:0}
+.input-inner{display:flex;gap:.75rem;max-width:860px;margin:0 auto;align-items:flex-end}
+.input-textarea{flex:1;border:1px solid var(--border);border-radius:14px;padding:.7rem 1rem;font-family:inherit;font-size:.93rem;resize:none;min-height:46px;max-height:160px;overflow-y:auto;outline:none;transition:border-color .2s,box-shadow .2s;color:var(--text);background:var(--surface);line-height:1.55}
+.input-textarea:focus{border-color:var(--sky);box-shadow:0 0 0 3px rgba(46,134,193,.12);background:#fff}
+.send-btn{width:46px;height:46px;border-radius:50%;background:var(--navy);color:#fff;border:none;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .18s,transform .1s}
+.send-btn:hover{background:var(--blue);transform:scale(1.05)}
+.send-btn:disabled{background:var(--border);cursor:default;transform:none}
+.input-hint{text-align:center;font-size:.7rem;color:var(--faint);margin-top:.4rem;max-width:860px;margin-left:auto;margin-right:auto}
+
+/* ── SCROLLBAR ── */
+.messages::-webkit-scrollbar{width:5px}
+.messages::-webkit-scrollbar-track{background:transparent}
+.messages::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px}
+
+/* ── DISCLAIMER ── */
+.disclaimer-bar{background:#FEF6E4;border-top:1px solid #FAC775;padding:.4rem 1.5rem;font-size:.72rem;color:#854F0B;text-align:center;flex-shrink:0}
+</style>
+</head>
+<body>
+
+<!-- ══ SIDEBAR ══ -->
+<div class="sidebar">
+  <div class="sidebar-brand" onclick="clearChat()">Cancer<span>GPT</span></div>
+
+  <div class="sidebar-section">Quick Queries</div>
+  <div class="chip-btn" onclick="quickSend('52yo female, BRCA breast cancer stage 2, TNBC biomarker, ECOG 1. What is her risk and which drugs should I use?')">
+    <span class="ci">🧑‍⚕️</span><span>Breast cancer risk + drugs</span>
+  </div>
+  <div class="chip-btn" onclick="quickSend('65yo male, LUAD lung adenocarcinoma stage 3, EGFR-mut, ECOG 2. Give me a full clinical summary.')">
+    <span class="ci">🫁</span><span>Lung cancer full summary</span>
+  </div>
+  <div class="chip-btn" onclick="quickSend('What is the predicted sensitivity of Olaparib for BRCA breast cancer with BRCA1 mutation?')">
+    <span class="ci">💊</span><span>Olaparib drug prediction</span>
+  </div>
+  <div class="chip-btn" onclick="quickSend('48yo female, SKCM melanoma stage 4, BRAF V600E mutation, ECOG 1. Best treatment options?')">
+    <span class="ci">🔬</span><span>Melanoma BRAF mutation</span>
+  </div>
+  <div class="chip-btn" onclick="quickSend('Which drugs have the highest model AUC in our XGBoost GDSC2 models?')">
+    <span class="ci">📊</span><span>Best performing models</span>
+  </div>
+  <div class="chip-btn" onclick="quickSend('Explain how XGBoost predicts drug sensitivity from gene expression data in CancerGPT')">
+    <span class="ci">🤖</span><span>How the model works</span>
+  </div>
+
+  <div class="sidebar-divider"></div>
+  <div class="sidebar-section">Model Stats</div>
+  <div class="sidebar-stat"><span>Drugs trained</span><span>41</span></div>
+  <div class="sidebar-stat"><span>Mean AUC</span><span>0.798</span></div>
+  <div class="sidebar-stat"><span>Best AUC</span><span>0.951</span></div>
+  <div class="sidebar-stat"><span>Cell lines</span><span>621</span></div>
+  <div class="sidebar-stat"><span>Dataset</span><span>GDSC2</span></div>
+
+  <div class="sidebar-bottom">
+    <div class="sidebar-hint">CancerGPT v3 · GDSC2 × Affymetrix U133A · XGBoost · Research use only</div>
+  </div>
+</div>
+
+<!-- ══ MAIN ══ -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title">CancerGPT — AI Oncology Assistant</div>
+    <span class="topbar-badge badge-green" id="model-badge">🧠 XGBoost Ready</span>
+    <span class="topbar-badge badge-blue" id="llm-badge">💬 LLM Connected</span>
+    <button class="topbar-btn" onclick="exportLastPDF()" id="export-btn" style="display:none">⬇ Export PDF</button>
+    <button class="topbar-btn" onclick="clearChat()">🗑 New Chat</button>
+  </div>
+
+  <div class="messages" id="messages">
+    <div class="welcome" id="welcome">
+      <div class="welcome-icon">🧬</div>
+      <h1>How can I help you today?</h1>
+      <p>Describe your patient in plain English — age, cancer type, biomarkers, stage. I'll run the real XGBoost models trained on GDSC2 data and give you drug predictions and a full clinical summary in one response.</p>
+      <div class="welcome-chips">
+        <div class="wc" onclick="quickSend('52yo female, BRCA breast cancer stage 2, TNBC, ECOG 1. Risk assessment and drug recommendations?')">
+          <strong>Patient Risk + Drugs</strong>52F · BRCA · Stage II · TNBC
+        </div>
+        <div class="wc" onclick="quickSend('What is the predicted sensitivity for Olaparib in BRCA breast cancer with BRCA1 mutation?')">
+          <strong>Drug Prediction</strong>Olaparib · BRCA · BRCA1 mutation
+        </div>
+        <div class="wc" onclick="quickSend('65yo male, LUAD stage 3, EGFR-mut, ECOG 2, prior chemotherapy. Full clinical summary.')">
+          <strong>Full Clinical Summary</strong>65M · Lung · EGFR+ · Stage III
+        </div>
+        <div class="wc" onclick="quickSend('48yo female, SKCM melanoma stage 4, BRAF V600E. What drugs should I consider?')">
+          <strong>Melanoma Treatment</strong>48F · SKCM · BRAF V600E · Stage IV
+        </div>
+        <div class="wc" onclick="quickSend('Compare Erlotinib vs Afatinib sensitivity for LUAD lung cancer with EGFR mutation')">
+          <strong>Drug Comparison</strong>Erlotinib vs Afatinib · LUAD · EGFR
+        </div>
+        <div class="wc" onclick="quickSend('Which drugs in our GDSC2 XGBoost models have AUC above 0.85?')">
+          <strong>Model Explorer</strong>All drugs with AUC ≥ 0.85
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="disclaimer-bar">
+    ⚠ CancerGPT is a research tool trained on GDSC2 in vitro data. All outputs require oncologist review. Not validated for clinical use.
+  </div>
+
+  <div class="input-area">
+    <div class="input-inner">
+      <textarea class="input-textarea" id="chat-input"
+        placeholder="Describe your patient or ask about drugs, biomarkers, cancer types… (e.g. '58yo male, COAD colon cancer stage 3, KRAS mutation')"
+        rows="1"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}"
+        oninput="autoGrow(this)"></textarea>
+      <button class="send-btn" id="send-btn" onclick="sendMessage()" title="Send">&#10148;</button>
+    </div>
+    <div class="input-hint">Enter to send · Shift+Enter for new line · Powered by XGBoost + Groq LLM</div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────────────────────
+const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://localhost:5000'
+  : 'https://cancergpt-api.onrender.com';
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let chatHistory = [];
+let chatContext = {};   // remembers last cancer/drug/patient for follow-ups
+let busy        = false;
+let lastSummary = null;
+
+// ── TOP DRUG DATA (for offline fallback display) ──────────────────────────────
+const DRUGS = [
+  {d:'Nutlin-3a (-)',p:'p53 pathway',t:'MDM2',auc:0.951},
+  {d:'Olaparib',p:'DNA repair',t:'PARP',auc:0.909},
+  {d:'Selumetinib',p:'MAPK',t:'MEK1/2',auc:0.900},
+  {d:'Trametinib',p:'MAPK',t:'MEK1/2',auc:0.875},
+  {d:'Cisplatin',p:'DNA damage',t:'DNA',auc:0.855},
+  {d:'Afatinib',p:'EGFR/ERBB',t:'ERBB2/EGFR',auc:0.849},
+  {d:'Navitoclax',p:'Apoptosis',t:'BCL2/BCL-XL',auc:0.841},
+  {d:'Docetaxel',p:'Microtubule',t:'Tubulin',auc:0.837},
+  {d:'Palbociclib',p:'Cell cycle',t:'CDK4/6',auc:0.836},
+  {d:'Oxaliplatin',p:'DNA damage',t:'DNA',auc:0.885},
+  {d:'Irinotecan',p:'DNA damage',t:'TOP1',auc:0.832},
+  {d:'Erlotinib',p:'EGFR',t:'EGFR',auc:0.791},
+  {d:'Paclitaxel',p:'Microtubule',t:'Tubulin',auc:0.769},
+  {d:'Alpelisib',p:'PI3K',t:'PIK3CA',auc:0.733},
+  {d:'Tamoxifen',p:'Hormone',t:'ESR1',auc:0.751},
+  {d:'Lapatinib',p:'EGFR/ERBB',t:'ERBB2',auc:0.723},
+];
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function autoGrow(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+}
+
+function now() {
+  return new Date().toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
+}
+
+function scrollBottom() {
+  const m = document.getElementById('messages');
+  setTimeout(() => m.scrollTop = m.scrollHeight, 50);
+}
+
+function hideWelcome() {
+  const w = document.getElementById('welcome');
+  if (w) w.style.display = 'none';
+}
+
+function quickSend(text) {
+  document.getElementById('chat-input').value = text;
+  sendMessage();
+}
+
+function clearChat() {
+  chatHistory = [];
+  chatContext = {};
+  lastSummary = null;
+  busy = false;
+  document.getElementById('messages').innerHTML = '';
+  const w = document.createElement('div');
+  w.className = 'welcome'; w.id = 'welcome';
+  w.innerHTML = document.querySelector('.welcome')?.innerHTML ||
+    '<div class="welcome-icon">🧬</div><h1>New conversation</h1><p>Describe your patient or ask a clinical question.</p>';
+  document.getElementById('messages').appendChild(w);
+  document.getElementById('send-btn').disabled = false;
+  document.getElementById('export-btn').style.display = 'none';
+}
+
+// ── ADD USER BUBBLE ───────────────────────────────────────────────────────────
+function addUserMsg(text) {
+  hideWelcome();
+  const msgs = document.getElementById('messages');
+  const row = document.createElement('div');
+  row.className = 'msg-row user';
+  row.innerHTML = `
+    <div class="msg-avatar av-user">You</div>
+    <div class="msg-body">
+      <div class="msg-bubble">${text.replace(/</g,'&lt;')}</div>
+      <div class="msg-time">${now()}</div>
+    </div>`;
+  msgs.appendChild(row);
+  scrollBottom();
+}
+
+// ── ADD BOT BUBBLE ────────────────────────────────────────────────────────────
+function addBotMsg(text, cardType, cardData) {
+  const msgs = document.getElementById('messages');
+  const row = document.createElement('div');
+  row.className = 'msg-row bot';
+  row.innerHTML = `
+    <div class="msg-avatar av-bot">🧬</div>
+    <div class="msg-body">
+      <div class="msg-bubble">${text.replace(/</g,'&lt;').replace(/\n/g,'<br>')}</div>
+      ${cardType ? buildCard(cardType, cardData) : ''}
+      <div class="msg-time">${now()}</div>
+    </div>`;
+  msgs.appendChild(row);
+  scrollBottom();
+}
+
+// ── BUILD RESULT CARD ─────────────────────────────────────────────────────────
+function buildCard(type, d) {
+  if (type === 'drug_prediction') return buildDrugCard(d);
+  if (type === 'patient_risk')    return buildRiskCard(d);
+  return '';
+}
+
+function buildDrugCard(d) {
+  const prob   = parseFloat(d.prob) || 0;
+  const cls    = prob >= 65 ? 'sens' : prob < 40 ? 'res' : 'mod';
+  const icon   = prob >= 65 ? '✅' : prob < 40 ? '❌' : '⚠️';
+  const lbl    = d.label || (prob>=65?'SENSITIVE':prob<40?'RESISTANT':'INTERMEDIATE');
+  const auc    = parseFloat(d.auc||0).toFixed(3);
+  const barC   = cls==='sens'?'#0B6E5C':cls==='res'?'#A93226':'#C07A0A';
+  const model  = d.model_used === 'real_pkl' ? '🧠 Real XGBoost model' : '📐 Formula estimate';
+
+  const feats  = (d.features||[]).slice(0,8).map((f,i) =>
+    `<span class="rc-gene gc-${i===0?'1':i<3?'2':'r'}">${f.probe||f.feature||f}</span>`).join('');
+
+  const mutRows = (d.mut_adj||[]).map(m =>
+    `<div class="mut-adj-row">
+      <span class="mut-badge mb-${m.type==='sensitising'?'sens':m.type==='resistance'?'res':'neu'}">${m.type}</span>
+      <span style="font-size:.82rem">${m.gene} mutation adjusts sensitivity</span>
+    </div>`).join('');
+
+  return `<div class="result-card">
+    <div class="rc-header ${cls}">
+      <div class="rc-icon">${icon}</div>
+      <div>
+        <div class="rc-title">${d.drug} → ${lbl} (p = ${(prob/100).toFixed(2)})</div>
+        <div class="rc-sub">${d.cancer} · ${model}</div>
+      </div>
+    </div>
+    <div class="rc-body">
+      <div class="rc-metrics">
+        <div class="rc-metric"><div class="ml">Sensitivity</div><div class="mv">${prob.toFixed(1)}%</div></div>
+        <div class="rc-metric"><div class="ml">Model AUC</div><div class="mv">${auc}</div></div>
+        <div class="rc-metric"><div class="ml">Prediction</div><div class="mv" style="font-size:.95rem">${lbl}</div></div>
+      </div>
+      <div class="rc-bar-wrap">
+        <div class="rc-bar-labels"><span>Resistant</span><span>Sensitive</span></div>
+        <div class="rc-bar-track">
+          <div class="rc-bar-fill" id="bar-${Date.now()}" style="width:0%;background:${barC}"></div>
+        </div>
+      </div>
+      ${mutRows ? `<div class="rc-section-lbl">Mutation adjustments</div>${mutRows}` : ''}
+      ${feats ? `<div class="rc-section-lbl">Top predictive genes</div><div class="rc-gene-chips">${feats}</div>` : ''}
+    </div>
+  </div>`;
+}
+
+function buildRiskCard(d) {
+  const risk   = d.risk || 0;
+  const cls    = d.risk_class || 'mod';
+  const hdrCls = 'risk-' + (cls==='low'?'low':cls==='mod'?'mod':cls==='high'?'high':'crit');
+  const icon   = cls==='low'?'🟢':cls==='mod'?'🟡':cls==='high'?'🟠':'🔴';
+  const drugs  = (d.drugs||[]).map(dr =>
+    `<div class="rc-drug-row">
+      <span class="rc-drug-name">${dr.name}</span>
+      <span class="rc-drug-auc">AUC ${parseFloat(dr.auc||0).toFixed(3)}</span>
+    </div>`).join('');
+
+  return `<div class="result-card">
+    <div class="rc-header ${hdrCls}">
+      <div class="rc-icon">${icon}</div>
+      <div>
+        <div class="rc-title">Risk Score ${risk}/100 — ${d.risk_label}</div>
+        <div class="rc-sub">${d.cancer} Stage ${d.stage||'?'} · ${d.age||'?'}yo ${d.sex||''} · ${d.risk_detail}</div>
+      </div>
+    </div>
+    <div class="rc-body">
+      <div class="rc-metrics">
+        <div class="rc-metric"><div class="ml">Risk score</div><div class="mv">${risk}/100</div></div>
+        <div class="rc-metric"><div class="ml">Sensitivity</div><div class="mv">${d.sensitivity_pct||0}%</div></div>
+        <div class="rc-metric"><div class="ml">Model AUC</div><div class="mv">${parseFloat(d.model_auc||0).toFixed(3)}</div></div>
+      </div>
+      <div class="rc-section-lbl">Recommended drugs (GDSC2 model)</div>
+      ${drugs}
+      <div class="rc-section-lbl">Priority action</div>
+      <div style="font-size:.88rem;color:var(--navy);font-weight:600;padding:.35rem 0">${d.action}</div>
+    </div>
+  </div>`;
+}
+
+// ── TYPING INDICATOR ──────────────────────────────────────────────────────────
+function showTyping() {
+  const msgs = document.getElementById('messages');
+  const row  = document.createElement('div');
+  row.className = 'typing-row'; row.id = 'typing';
+  row.innerHTML = `
+    <div class="msg-avatar av-bot">🧬</div>
+    <div class="typing-bubble"><span></span><span></span><span></span></div>`;
+  msgs.appendChild(row);
+  scrollBottom();
+}
+function hideTyping() { document.getElementById('typing')?.remove(); }
+
+// ── ANIMATE BARS AFTER RENDER ─────────────────────────────────────────────────
+function animateBars() {
+  setTimeout(() => {
+    document.querySelectorAll('.rc-bar-fill[style*="width:0%"]').forEach(el => {
+      const id = el.id;
+      const msg = el.closest('.result-card');
+      const mv  = msg?.querySelector('.mv');
+      if (mv) {
+        const pct = parseFloat(mv.textContent) || 0;
+        el.style.width = pct + '%';
+      }
+    });
+  }, 100);
+}
+
+// ── SEND MESSAGE ──────────────────────────────────────────────────────────────
+async function sendMessage() {
+  if (busy) return;
+  const input = document.getElementById('chat-input');
+  const text  = input.value.trim();
+  if (!text) return;
+
+  input.value = '';
+  input.style.height = 'auto';
+  busy = true;
+  document.getElementById('send-btn').disabled = true;
+
+  addUserMsg(text);
+  chatHistory.push({ role: 'user', content: text });
+  showTyping();
+
+  try {
+    const res  = await fetch(API_BASE + '/api/chat', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ messages: chatHistory, context: chatContext })
+    });
+    const data = await res.json();
+    hideTyping();
+
+    if (!res.ok) throw new Error(data.error || 'Server error ' + res.status);
+
+    const reply    = data.reply || '';
+    const cardType = data.card_type;
+    const cardData = data.card_data || {};
+
+    chatHistory.push({ role: 'assistant', content: reply });
+
+    // Remember context for follow-up questions
+    if (data.parsed) {
+      const p = data.parsed;
+      if (p.cancer)   chatContext.last_cancer = p.cancer;
+      if (p.drug)     chatContext.last_drug   = p.drug;
+      if (p.age)      chatContext.last_age    = p.age;
+      if (p.sex)      chatContext.last_sex    = p.sex;
+      if (p.stage)    chatContext.last_stage  = p.stage;
+      if (p.ecog)     chatContext.last_ecog   = p.ecog;
+      if (p.biomarker)chatContext.last_bio    = p.biomarker;
+    }
+
+    // Store for PDF export
+    if (cardType === 'patient_risk') {
+      lastSummary = { ...cardData, reply };
+      document.getElementById('export-btn').style.display = 'inline-block';
+    }
+
+    addBotMsg(reply, cardType, cardData);
+    animateBars();
+
+  } catch (err) {
+    hideTyping();
+    const msg = err.message.includes('503')
+      ? '⚠ No LLM configured. Set GROQ_API_KEY or GEMINI_API_KEY in your .env file and restart Docker.'
+      : '⚠ ' + err.message;
+    addBotMsg(msg, null, null);
+  }
+
+  busy = false;
+  document.getElementById('send-btn').disabled = false;
+  input.focus();
+}
+
+// ── PDF EXPORT ────────────────────────────────────────────────────────────────
+function exportLastPDF() {
+  if (!lastSummary) { alert('Run a patient risk assessment first.'); return; }
+  const { jsPDF } = window.jspdf;
+  if (!jsPDF) { alert('PDF library not loaded.'); return; }
+  const s   = lastSummary;
+  const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+  const W=210, M=18, TW=W-M*2;
+  let y=20;
+  const navy=[13,33,55], sky=[46,134,193], grey=[90,107,128];
+  const write=(txt,size,color,bold,indent=0)=>{
+    doc.setFontSize(size); doc.setTextColor(...(color||[30,30,30]));
+    doc.setFont('helvetica', bold?'bold':'normal');
+    doc.splitTextToSize(txt, TW-indent).forEach(l=>{
+      if(y>275){doc.addPage();y=20;} doc.text(l,M+indent,y); y+=size*.45;
+    }); y+=1;
+  };
+  const rule=()=>{doc.setDrawColor(...sky);doc.setLineWidth(.3);doc.line(M,y,W-M,y);y+=4;};
+
+  doc.setFillColor(...navy); doc.rect(0,0,W,28,'F');
+  doc.setFontSize(17); doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255);
+  doc.text('CancerGPT — Clinical Summary Report', M, 15);
+  doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(180,200,220);
+  doc.text(`Generated: ${new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'})}`, M, 23);
+  y=36;
+
+  write('Patient Profile', 13, navy, true); rule();
+  [['Age', s.age||'—'], ['Sex', s.sex||'—'], ['Cancer', s.cancer||'—'],
+   ['Stage', `Stage ${s.stage||'—'}`], ['ECOG', `ECOG ${s.ecog||'—'}`],
+   ['Biomarker', s.bio||'Unknown']].forEach(([k,v])=>{
+    doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(...grey); doc.text(k, M, y);
+    doc.setFont('helvetica','normal'); doc.setTextColor(30,30,30); doc.text(String(v), M+45, y); y+=5;
+  }); y+=3;
+
+  write('Risk Assessment', 13, navy, true); rule();
+  const rC=s.risk_class==='low'?[11,110,92]:s.risk_class==='mod'?[192,122,10]:[169,50,38];
+  doc.setFillColor(...rC); doc.roundedRect(M,y,TW,14,2,2,'F');
+  doc.setFontSize(13); doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255);
+  doc.text(`Risk Score: ${s.risk}  ·  ${s.risk_label}`, M+4, y+9); y+=18;
+  write(s.risk_detail||'', 9, grey); y+=2;
+  [['Sensitivity', (s.sensitivity_pct||0)+'%'], ['Model AUC', (s.model_auc||0).toFixed?s.model_auc.toFixed(3):s.model_auc],
+   ['Action', s.action||'MDT review']].forEach(([k,v])=>{
+    doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(...grey); doc.text(k, M, y);
+    doc.setFont('helvetica','normal'); doc.setTextColor(30,30,30); doc.text(String(v), M+50, y); y+=5;
+  }); y+=3;
+
+  write('Recommended Drugs', 13, navy, true); rule();
+  (s.drugs||[]).forEach(d=>{
+    doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(30,30,30); doc.text(d.name, M+4, y);
+    doc.setFont('helvetica','normal'); doc.setTextColor(...grey); doc.text(`AUC ${parseFloat(d.auc||0).toFixed(3)}`, M+60, y); y+=5;
+  }); y+=3;
+
+  if (s.reply) {
+    write('AI Clinical Narrative', 13, navy, true); rule();
+    write('Generated by CancerGPT LLM · Research use only', 8, grey);
+    y+=2;
+    s.reply.split('\n\n').filter(p=>p.trim()).forEach(p=>{ write(p.trim(), 8, [50,60,80]); y+=2; });
+  }
+
+  write('Disclaimer', 10, navy, true);
+  write('Research tool trained on GDSC2 in vitro data. All outputs require oncologist review. Not validated for clinical use.', 8, grey);
+
+  const pages = doc.internal.getNumberOfPages();
+  for(let i=1;i<=pages;i++){
+    doc.setPage(i); doc.setFontSize(8); doc.setTextColor(...grey);
+    doc.text(`CancerGPT Report · Page ${i} of ${pages}`, M, 290);
+    doc.text('Research use only', W-M, 290, 'right');
+  }
+  doc.save(`CancerGPT_${s.cancer||'report'}_${new Date().toISOString().slice(0,10)}.pdf`);
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+// Check API health on load
+fetch(API_BASE + '/api/health').then(r=>r.json()).then(d=>{
+  document.getElementById('model-badge').textContent = d.model ? '🧠 XGBoost Ready' : '📐 Formula Mode';
+  document.getElementById('model-badge').className   = 'topbar-badge ' + (d.model ? 'badge-green' : 'badge-amber');
+  document.getElementById('llm-badge').textContent   = '💬 LLM Connected';
+}).catch(()=>{
+  document.getElementById('model-badge').textContent = '⚠ API Offline';
+  document.getElementById('model-badge').className   = 'topbar-badge badge-amber';
+  document.getElementById('llm-badge').textContent   = '⚠ Check Docker';
+});
+</script>
+</body>
+</html>
