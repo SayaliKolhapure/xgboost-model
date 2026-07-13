@@ -250,6 +250,28 @@ def frontend():
     return send_from_directory('/app', 'index.html')
 
 @app.route('/api/health')
+@app.route('/api/debug')
+def debug():
+    import os, stat
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    files = {}
+    for f in os.listdir(BASE_DIR):
+        fp = os.path.join(BASE_DIR, f)
+        try:
+            s = os.stat(fp)
+            files[f] = {
+                'size': s.st_size,
+                'readable': os.access(fp, os.R_OK),
+                'permissions': oct(stat.S_IMODE(s.st_mode))
+            }
+        except Exception as e:
+            files[f] = {'error': str(e)}
+    return jsonify({
+        'base_dir': BASE_DIR,
+        'running_as_user': os.getuid(),
+        'files': files,
+        'model_ready': MODEL_READY
+    })
 def health():
     try: Session().execute(text('SELECT 1')); db_ok=True
     except: db_ok=False
