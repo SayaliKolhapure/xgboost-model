@@ -1,30 +1,16 @@
-# ── CancerGPT Dockerfile ──────────────────────────────────────────────────────
-# Build:  docker build -t cancergpt .
-# Run:    docker-compose up --build
-
 FROM python:3.11-slim
 
-# System dependencies
-RUN apt-get update && apt-get install -y \
-    gcc \
-    libpq-dev \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
-
-# Set working directory
 WORKDIR /app
 
-# Install Python dependencies first (cached layer)
+# Install dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Fix anthropic/httpx version conflict (proxies argument removed in newer httpx)
-RUN pip install --upgrade "anthropic>=0.40.0" "httpx>=0.27.0"
-
-# Copy application code
+# Copy app files
 COPY app.py .
+COPY index.html .
 
-# Copy ML model artifacts (must be in same folder as Dockerfile)
+# Copy XGBoost model files
 COPY xgboost_best_model.pkl .
 COPY xgboost_probe_cols.pkl .
 COPY xgboost_gdsc_results.csv .
@@ -33,20 +19,6 @@ COPY xgboost_mutation_model.pkl .
 COPY xgboost_mutation_results.csv .
 COPY xgboost_mutation_features.csv .
 
-# Copy frontend
-COPY index.html .
-
-# Expose port
 EXPOSE 5000
 
-# Health check — Docker will restart container if API goes down
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:5000/api/health || exit 1
-
-# Start with gunicorn (production WSGI server)
-CMD ["gunicorn", "app:app", \
-     "--bind", "0.0.0.0:5000", \
-     "--workers", "2", \
-     "--timeout", "120", \
-     "--access-logfile", "-", \
-     "--error-logfile", "-"]
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "--timeout", "120", "app:app"]
