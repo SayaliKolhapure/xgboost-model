@@ -123,7 +123,9 @@ try:
     BEST_DRUG   = RESULTS_DF.sort_values('ROC_AUC', ascending=False).iloc[0]['Drug']
     print(f"  Model ready | Best drug: {BEST_DRUG}")
 except Exception as e:
+    import traceback
     print(f"  Model load error: {e}")
+    traceback.print_exc()
     MODEL_READY = False
     BEST_MODEL = PROBE_COLS = RESULTS_DF = FEATURES_DF = None
     BEST_DRUG = "Nutlin-3a (-)"
