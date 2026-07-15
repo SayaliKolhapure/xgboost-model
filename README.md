@@ -187,7 +187,7 @@ DATABASE_URL=your_postgresql_url  # Render PostgreSQL internal URL
 ```
 xgboost-model/
 │
-├── app.py                           # Flask backend — all 10 API routes
+├── app.py                           # Flask backend 
 ├── index.html                       # Conversational single-page chat UI
 ├── Dockerfile                       # Python 3.11-slim Docker build
 ├── docker-compose.yml               # 3-container: api + db + pgadmin
@@ -271,7 +271,7 @@ MIT ADTU School of Bioengineering Sciences & Research, Pune
 CSIR-National Chemical Laboratory (NCL), Pune · 2025–2026
 
 [![GitHub](https://img.shields.io/badge/GitHub-SayaliKolhapure-black?style=flat&logo=github)](https://github.com/SayaliKolhapure)
-[![Email](https://img.shields.io/badge/Email-sayalikolhapure7@gmail.com-red?style=flat&logo=gmail)](mailto:sayalikolhapure7@gmail.com)
+[![Email](https://img.shields.io/badge/Email-sayalikolhapure01@gmail.com-red?style=flat&logo=gmail)](mailto:sayalikolhapure01@gmail.com)
 
 </div>
 
